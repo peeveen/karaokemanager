@@ -24,7 +24,7 @@ KEYEVENTF_SCANCODE = 0x0008
 
 MAPVK_VK_TO_VSC = 0
 
-# msdn.microsoft.com/en-us/library/dd375731
+# msdn.microsoft.com/en-us/library/dd3757312
 VK_TAB = 0x09
 VK_MENU = 0x12
 VK_CTRL = 0x11
