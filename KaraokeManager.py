@@ -145,6 +145,7 @@ def resetPitch():
 firstSong = True
 karaokeFilesPaths = None
 musicFilesPaths = None
+dataFilesPath = None
 dataFolder = getenv("APPDATA")+"\\FullHouse Entertainment\\KaraokeManager"
 stateFilename = dataFolder+"\\KaraokeManager.state.txt"
 backgroundMusicPlaylistFilename = "BackgroundMusicPlaylist.txt"
@@ -1028,7 +1029,7 @@ def cueSong(params):
 			if len(params)>1:
 				if params[1]=="a" or params[1]=="add":
 					try:
-						with open(backgroundMusicPlaylistFilename, mode="a", encoding="utf-8") as f:
+						with open(dataFilesPath+"\\"+backgroundMusicPlaylistFilename, mode="a", encoding="utf-8") as f:
 							f.write(song.artist+" - "+song.title+"\n")
 					except PermissionError:
 						errors.append("Failed to append to background music playlist file.")
@@ -1220,8 +1221,8 @@ def parseSimilarityExemption(line):
 def getReversalExemptions():
 	global reversalExemptions
 	reversalExemptions = []
-	if path.isfile(reversalExemptionsFilename):
-		with open(reversalExemptionsFilename, mode="r", encoding="utf-8") as f:
+	if path.isfile(dataFilesPath+"\\"+reversalExemptionsFilename):
+		with open(dataFilesPath+"\\"+reversalExemptionsFilename, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
 			for line in lines:
 				reversalExemption = parseReversalExemption(line)
@@ -1231,8 +1232,8 @@ def getReversalExemptions():
 def getTheExemptions():
 	global theExemptions
 	theExemptions = set([])
-	if path.isfile(theExemptionsFilename):
-		with open(theExemptionsFilename, mode="r", encoding="utf-8") as f:
+	if path.isfile(dataFilesPath+"\\"+theExemptionsFilename):
+		with open(dataFilesPath+"\\"+theExemptionsFilename, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
 			for line in lines:
 				theExemption = line.strip()
@@ -1242,8 +1243,8 @@ def getTheExemptions():
 def getBackgroundMusicPlaylist():
 	global backgroundMusicPlaylist
 	backgroundMusicPlaylist = set([])
-	if path.isfile(backgroundMusicPlaylistFilename):
-		with open(backgroundMusicPlaylistFilename, mode="r", encoding="utf-8") as f:
+	if path.isfile(dataFilesPath+"\\"+backgroundMusicPlaylistFilename):
+		with open(dataFilesPath+"\\"+backgroundMusicPlaylistFilename, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
 			for line in lines:
 				line = line.strip()
@@ -1254,8 +1255,8 @@ def getBackgroundMusicPlaylist():
 def getSimilarityExemptions():
 	global similarityExemptions
 	similarityExemptions = []
-	if path.isfile(similarityExemptionsFilename):
-		with open(similarityExemptionsFilename, mode="r", encoding="utf-8") as f:
+	if path.isfile(dataFilesPath+"\\"+similarityExemptionsFilename):
+		with open(dataFilesPath+"\\"+similarityExemptionsFilename, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
 			for line in lines:
 				similarityExemption = parseSimilarityExemption(line)
@@ -1266,8 +1267,8 @@ def getSimilarityExemptions():
 def getLowerCaseExemptions():
 	global lowerCaseExemptions
 	lowerCaseExemptions = []
-	if path.isfile(lowerCaseExemptionsFilename):
-		with open(lowerCaseExemptionsFilename, mode="r", encoding="utf-8") as f:
+	if path.isfile(dataFilesPath+"\\"+lowerCaseExemptionsFilename):
+		with open(dataFilesPath+"\\"+lowerCaseExemptionsFilename, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
 			for line in lines:
 				lowerCaseExemption = line.strip()
@@ -1513,13 +1514,13 @@ def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilen
 	duplicates.extend(dups)
 	songErrors.extend(errs)
 	try:
-		with open(dupFilename, mode="w", encoding="utf-8") as f:
+		with open(dataFilesPath+"\\"+dupFilename, mode="w", encoding="utf-8") as f:
 			for duplicate in dups:
 				f.writelines(duplicate.artist+" - "+duplicate.title+"\n")
 	except PermissionError:
 		errors.append("Failed to write duplicates file.")
 	try:
-		with open(errFilename, mode="w", encoding="utf-8") as f:
+		with open(dataFilesPath+"\\"+errFilename, mode="w", encoding="utf-8") as f:
 			for songError in errs:
 				f.writelines(songError+"\n")
 	except PermissionError:
@@ -1580,13 +1581,13 @@ def buildSongList(params):
 	else:
 		errors.append("MusicFilesPath was not specified.")
 	try:
-		with open(filenameErrorsFilename, mode="w", encoding="utf-8") as f:
+		with open(dataFilesPath+"\\"+filenameErrorsFilename, mode="w", encoding="utf-8") as f:
 			for filenameError in filenameErrors:
 				f.writelines(filenameError+"\n")
 	except PermissionError:
 		errors.append("Failed to write filename errors file.")
 	try:
-		with open(missingPlaylistEntriesFilename, mode="w", encoding="utf-8") as f:
+		with open(dataFilesPath+"\\"+missingPlaylistEntriesFilename, mode="w", encoding="utf-8") as f:
 			for backgroundMusicFile in backgroundMusicPlaylist:
 				f.writelines(backgroundMusicFile+"\n")
 	except PermissionError:
@@ -1616,6 +1617,7 @@ def buildSongList(params):
 def getSettings():
 	global musicFilesPaths
 	global karaokeFilesPaths
+	global dataFilesPath
 	lines = sys.argv
 	for line in lines:
 		equalsIndex = line.find("=")
@@ -1627,31 +1629,39 @@ def getSettings():
 			else:
 				if firstBit == "musicfilespath":
 					musicFilesPaths = secondBit.strip().split(';')
+				else:
+					if firstBit == "datafilespath":
+						dataFilesPath = secondBit.strip()
 
 
 getSettings()
 clear()
-if not path.isdir(dataFolder):
-	makedirs(dataFolder)
-if path.exists(requestsFilename):
-  remove(requestsFilename)
-buildSongList([])
-state = State()
-while not quit:
+if(len(dataFilesPath)==0):
+	print("No data folder specified.")
+else:
+	if not path.isdir(dataFilesPath):
+		makedirs(dataFilesPath)
+	if not path.isdir(dataFolder):
+		makedirs(dataFolder)
+	if path.exists(requestsFilename):
+		remove(requestsFilename)
+	buildSongList([])
+	state = State()
+	while not quit:
+		clear()
+		state.save()
+		showHeader()
+		print()
+		showSingers()
+		print()
+		showSongs()
+		print()
+		showMessages()
+		showErrors()
+		print(
+			f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
+		command = getCommand()
+		if not command is None:
+			processCommand(command)
 	clear()
-	state.save()
-	showHeader()
-	print()
-	showSingers()
-	print()
-	showSongs()
-	print()
-	showMessages()
-	showErrors()
-	print(
-		f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
-	command = getCommand()
-	if not command is None:
-		processCommand(command)
-clear()
-stopSuggestionThread()
+	stopSuggestionThread()

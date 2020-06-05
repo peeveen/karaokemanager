@@ -2,4 +2,4 @@
 py -m pip install --upgrade pip
 py -m pip install colorama
 py -m pip install textdistance
-py KaraokeManager.py "KaraokeFilesPath=%~1" "MusicFilesPath=%~2"
+py KaraokeManager.py "DataFilesPath=%~1" "KaraokeFilesPath=%~2" "MusicFilesPath=%~3"
