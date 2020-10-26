@@ -1550,7 +1550,7 @@ def buildSongList(params):
 				padding = " "*(119-len(message))
 				print(message+padding, end="\r")
 				for file in files:
-					if file.lower().endswith(".zip"):
+					if file.lower().endswith(".kzp"):
 						karaokeFile = parseKaraokeFilename(root+"\\"+file, file)
 						if karaokeFile is None:
 							filenameErrors.append(file)
