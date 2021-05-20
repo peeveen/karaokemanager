@@ -1497,13 +1497,6 @@ def startSuggestionThread():
 def getMusicFileKey(file):
 	return file.artist
 
-def writeBackgroundMusicFile(paths):
-	try:
-		with open(backgroundMusicFilename, mode="w", encoding="utf-8") as f:
-			f.writelines(paths,)
-	except PermissionError:
-		errors.append("Failed to write background music file.")
-
 def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilename,errFilename,descr):
 	dups=[]
 	errs=[]
@@ -1530,6 +1523,48 @@ def analyzeFiles(full,songErrors,duplicates):
 	analyzeFilesPerCategory(full,songErrors,duplicates,musicFiles,musicDictionary,musicDuplicatesFilename,musicErrorsFilename,"music")
 	analyzeFilesPerCategory(full,songErrors,duplicates,karaokeFiles,karaokeDictionary,karaokeDuplicatesFilename,karaokeErrorsFilename,"karaoke")
 
+def scanKaraokeFile(root,file,fileCollection,secondaryFileCollection,filenameErrors):
+	if file.lower().endswith(".kzp"):
+		karaokeFile = parseKaraokeFilename(root+"\\"+file, file)
+		if karaokeFile is None:
+			filenameErrors.append(file)
+		else:
+			fileCollection.append(karaokeFile)
+
+def scanMusicFile(root,file,fileCollection,secondaryFileCollection,filenameErrors):
+	fileLower = file.lower()
+	if fileLower.endswith(".mp3") or fileLower.endswith(".m4a"):
+		fileWithoutExtension = fileLower[0:-4]
+		if fileWithoutExtension in backgroundMusicPlaylist:
+			secondaryFileCollection.append(root+"\\"+file)
+			backgroundMusicPlaylist.remove(fileWithoutExtension)
+		musicFile = parseMusicFilename(root+"\\"+file, file)
+		if musicFile is None:
+			filenameErrors.append(file)
+		else:
+			fileCollection.append(musicFile)
+
+def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
+	scannedFiles=[]
+	filenameErrors=[]
+	for filePath in filePaths:
+		for root, _, files in walk(filePath):
+			message = "Scanning "+root
+			message = message[0:118]
+			padding = " "*(119-len(message))
+			print(message+padding, end="\r")
+			for file in files:
+				scanFileFunction(root,file,scannedFiles,secondaryFileCollection,filenameErrors)
+	return scannedFiles,filenameErrors
+
+def writeTextFile(itemList,path):
+	try:
+		with open(path, mode="w", encoding="utf-8") as f:
+			for item in itemList:
+				f.writelines(item+"\n")
+	except PermissionError:
+		errors.append("Failed to write "+path+".")
+
 def buildSongList(params):
 	global karaokeDictionary
 	global musicDictionary
@@ -1538,60 +1573,29 @@ def buildSongList(params):
 	global filenameErrorCount
 	getBackgroundMusicPlaylist()
 	backgroundMusic=[]
-	filenameErrors = []
+	karaokeFilenameErrors=[]
+	musicFilenameErrors=[]
+	karaokeFiles=[]
+	musicFiles=[]
 	quickanalyze = len(params) > 0 and (params[0] == "quickanalyze" or params[0] == "q")
 	fullanalyze = len(params) > 0 and (params[0] == "analyze" or params[0] == "a")
-	karaokeFiles = []
 	if not karaokeFilesPaths is None:
-		for karaokeFilesPath in karaokeFilesPaths:
-			for root, _, files in walk(karaokeFilesPath):
-				message = "Scanning "+root
-				message = message[0:118]
-				padding = " "*(119-len(message))
-				print(message+padding, end="\r")
-				for file in files:
-					if file.lower().endswith(".kzp"):
-						karaokeFile = parseKaraokeFilename(root+"\\"+file, file)
-						if karaokeFile is None:
-							filenameErrors.append(file)
-						else:
-							karaokeFiles.append(karaokeFile)
+		karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
 	else:
 		errors.append("KaraokeFilesPath was not specified.")
-	musicFiles=[]
+	if not karaokeFilesPaths is None:
+		karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
+	else:
+		errors.append("KaraokeFilesPath was not specified.")
 	if not musicFilesPaths is None:
-		for musicFilesPath in musicFilesPaths:
-			for root, _, files in walk(musicFilesPath):
-				message = "Scanning "+root
-				message = message[0:118]
-				padding = " "*(119-len(message))
-				print(message+padding, end="\r")
-				for file in files:
-					fileLower = file.lower()
-					if fileLower.endswith(".mp3") or fileLower.endswith(".m4a"):
-						fileWithoutExtension = fileLower[0:-4]
-						if fileWithoutExtension in backgroundMusicPlaylist:
-							backgroundMusic.append(root+"\\"+file+"\n")
-							backgroundMusicPlaylist.remove(fileWithoutExtension)
-						musicFile = parseMusicFilename(root+"\\"+file, file)
-						if musicFile is None:
-							filenameErrors.append(file)
-						else:
-							musicFiles.append(musicFile)
+		musicFiles, musicFilenameErrors=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
 	else:
 		errors.append("MusicFilesPath was not specified.")
-	try:
-		with open(dataFilesPath+"\\"+filenameErrorsFilename, mode="w", encoding="utf-8") as f:
-			for filenameError in filenameErrors:
-				f.writelines(filenameError+"\n")
-	except PermissionError:
-		errors.append("Failed to write filename errors file.")
-	try:
-		with open(dataFilesPath+"\\"+missingPlaylistEntriesFilename, mode="w", encoding="utf-8") as f:
-			for backgroundMusicFile in backgroundMusicPlaylist:
-				f.writelines(backgroundMusicFile+"\n")
-	except PermissionError:
-		errors.append("Failed to write missing playlist entries file.")
+	filenameErrors = karaokeFilenameErrors+musicFilenameErrors
+	writeTextFile(filenameErrors,dataFilesPath+"\\"+filenameErrorsFilename)
+	# Whatever's left in the background music playlist will be missing files.
+	writeTextFile(backgroundMusicPlaylist,dataFilesPath+"\\"+missingPlaylistEntriesFilename)
+	writeTextFile(backgroundMusic,backgroundMusicFilename)
 	buildDictionary()
 	startSuggestionThread()
 	anythingToReport = len(filenameErrors) > 0 or len(backgroundMusicPlaylist)>0
@@ -1612,7 +1616,6 @@ def buildSongList(params):
 			pass
 	musicFiles.sort(key=getMusicFileKey)
 	karaokeFiles.sort(key=getMusicFileKey)
-	writeBackgroundMusicFile(backgroundMusic)
 
 def getSettings():
 	global musicFilesPaths
