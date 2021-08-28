@@ -1583,10 +1583,6 @@ def buildSongList(params):
 		karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
 	else:
 		errors.append("KaraokeFilesPath was not specified.")
-	if not karaokeFilesPaths is None:
-		karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
-	else:
-		errors.append("KaraokeFilesPath was not specified.")
 	if not musicFilesPaths is None:
 		musicFiles, musicFilenameErrors=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
 	else:
