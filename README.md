@@ -1,4 +1,4 @@
-# karaokeManager
+# KaraokeManager
 Command-line karaoke session management utility, driving Winamp.
 
 ![KaraokeManager1](/media/karaokeManagerScreenshot1.png?raw=true)
@@ -11,3 +11,6 @@ Command-line karaoke session management utility, driving Winamp.
 * Cue up music tracks inbetween singers.
 * Fast undo & redo functionality for fat finger syndrome.
 * Works with my SingerQueue and AutoDJ Winamp plugins.
+
+### TODO
+* Improve customization (currently requires specifically formatted filenames, extensions, hotkeys, etc) 
