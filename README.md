@@ -10,7 +10,7 @@ Command-line karaoke session management utility, driving Winamp.
 * Drives Winamp as the MP3/CDG player.
 * Cue up music tracks inbetween singers.
 * Fast undo & redo functionality for fat finger syndrome.
-* singers maintain their position in the queue, even if they have no songs cued up.
+* Singers maintain their position in the queue, even if they have no songs cued up.
 * Works with my SingerQueue and AutoDJ Winamp plugins.
 
 ### TODO
