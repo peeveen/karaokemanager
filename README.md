@@ -9,6 +9,7 @@ Command-line karaoke session management utility, driving Winamp.
 * Easily add/delete/move singers and songs with short, simple commands.
 * Drives Winamp as the MP3/CDG player.
 * Cue up music tracks inbetween singers.
+* Automatically sets and resets Pacemaker pitch changes via pre-configured hotkeys.
 * Fast undo & redo functionality for fat finger syndrome.
 * Singers maintain their position in the queue, even if they have no songs cued up.
 * Works with my SingerQueue and AutoDJ Winamp plugins.
