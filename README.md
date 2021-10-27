@@ -16,3 +16,4 @@ Command-line karaoke session management utility, driving Winamp.
 
 ### TODO
 * Improve customization (currently requires specifically formatted filenames, extensions, hotkeys, etc) 
+* More comments.
