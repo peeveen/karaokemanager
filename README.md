@@ -16,5 +16,5 @@ Command-line karaoke session management utility, driving Winamp.
 * Works with my SingerQueue and AutoDJ Winamp plugins.
 
 ### TODO
-* Improve customization (currently requires specifically formatted filenames, extensions, hotkeys, etc) 
+* Improve customization (currently requires specifically formatted filenames, hotkeys, etc) 
 * More comments.
