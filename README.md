@@ -12,6 +12,7 @@ Command-line karaoke session management utility, driving Winamp.
 * Automatically sets and resets Pacemaker pitch changes via pre-configured hotkeys.
 * Fast undo & redo functionality for fat finger syndrome.
 * Singers maintain their position in the queue, even if they have no songs cued up.
+* Heavy OCD rating. Scans your library for duplicates, badly-formatted filenames, etc.
 * Works with my SingerQueue and AutoDJ Winamp plugins.
 
 ### TODO
