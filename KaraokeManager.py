@@ -15,13 +15,14 @@ from Song import Song
 from SingerColumn import SingerColumn
 from SongSelector import selectSong
 from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
+import yaml
 
 # The current state
 state = None
 # List of paths to karaoke files
-karaokeFilesPaths = None
+karaokeFilesPaths = []
 # List of paths to music (MP3/M4A/whatever) files
-musicFilesPaths = None
+musicFilesPaths = []
 # Path to the folder where data files (music playlist, exemption lists, etc) are stored
 dataFilesPath = None
 # Path to the appdata folder. We will write "temporary" data here, like the persistent state, request queue, etc.
@@ -68,6 +69,12 @@ stopSuggestions = False
 errors = []
 # List of informational messages from last command
 messages = []
+# Default YAML config filename
+defaultConfigFilename='karaokeManagerConfig.yaml'
+# Default recognised karaoke file extensions
+karaokeFileExtensions=["zip"]
+# Default recognised music file extensions
+musicFileExtensions=["mp3", "m4a"]
 
 # Shows onscreen help when the user types "help"
 def showHelp():
@@ -487,19 +494,26 @@ def analyzeFiles(full,songErrors,duplicates):
 	analyzeFilesPerCategory(full,songErrors,duplicates,musicFiles,musicDictionary,musicDuplicatesFilename,musicErrorsFilename,"music")
 	analyzeFilesPerCategory(full,songErrors,duplicates,karaokeFiles,karaokeDictionary,karaokeDuplicatesFilename,karaokeErrorsFilename,"karaoke")
 
+def extensionMatches(filename, exts):
+	filename=filename.lower()
+	# The replace is in case the user supplied the dot already in the config file.
+	return any(list(map(lambda ext: filename.endswith(f".{ext}".replace("..", ".")), exts)))
+
 # Tries to parse a karaoke file, adding it to a collection if successful.
-def scanKaraokeFile(root,file,fileCollection,secondaryFileCollection,filenameErrors):
-	if file.lower().endswith(".kzp"):
+def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
+	if extensionMatches(file, karaokeFileExtensions):
 		karaokeFile = parseKaraokeFilename(root+"\\"+file, file)
 		if karaokeFile is None:
 			filenameErrors.append(file)
 		else:
 			fileCollection.append(karaokeFile)
+	else:
+		filenameErrors.append(file)
 
 # Tries to parse a music file, adding it to a collection if successful.
-def scanMusicFile(root,file,fileCollection,secondaryFileCollection,filenameErrors):
+def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
 	fileLower = file.lower()
-	if fileLower.endswith(".mp3") or fileLower.endswith(".m4a"):
+	if extensionMatches(file, musicFileExtensions):
 		fileWithoutExtension = fileLower[0:-4]
 		if fileWithoutExtension in backgroundMusicPlaylist:
 			secondaryFileCollection.append(root+"\\"+file)
@@ -546,14 +560,8 @@ def buildSongLists(params):
 	musicFiles=[]
 	quickanalyze = len(params) > 0 and (params[0] == "quickanalyze" or params[0] == "q")
 	fullanalyze = len(params) > 0 and (params[0] == "analyze" or params[0] == "a")
-	if not karaokeFilesPaths is None:
-		karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
-	else:
-		errors.append("KaraokeFilesPath was not specified.")
-	if not musicFilesPaths is None:
-		musicFiles, musicFilenameErrors=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
-	else:
-		errors.append("MusicFilesPath was not specified.")
+	karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
+	musicFiles, musicFilenameErrors=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
 	filenameErrors = karaokeFilenameErrors+musicFilenameErrors
 	writeTextFile(filenameErrors,dataFilesPath+"\\"+filenameErrorsFilename)
 	# Whatever's left in the background music playlist will be missing files.
@@ -568,7 +576,7 @@ def buildSongLists(params):
 		analyzeFiles(fullanalyze,songErrors,duplicates)
 		anythingToReport = anythingToReport or len(songErrors)>0 or len(duplicates)>0
 	if anythingToReport:
-		scanCompleteMessage=padOrEllipsize("Scan complete.", 69)
+		scanCompleteMessage=padOrEllipsize("Scan complete.", 119)
 		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
 		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(filenameErrors)}")
 		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(songErrors)}")
@@ -585,31 +593,41 @@ def buildSongLists(params):
 	karaokeFiles.sort(key=getMusicFileKey)
 
 # Parses command line arguments
-def getSettings():
+def getSettings(configPath):
 	global musicFilesPaths
 	global karaokeFilesPaths
 	global dataFilesPath
-	lines = sys.argv
-	for line in lines:
-		equalsIndex = line.find("=")
-		if equalsIndex != -1:
-			firstBit = line[0:equalsIndex].strip().lower()
-			secondBit = line[equalsIndex+1:].strip()
-			if firstBit == "karaokefilespath":
-				karaokeFilesPaths = secondBit.strip().split(';')
-			else:
-				if firstBit == "musicfilespath":
-					musicFilesPaths = secondBit.strip().split(';')
-				else:
-					if firstBit == "datafilespath":
-						dataFilesPath = secondBit.strip()
-
+	global karaokeFileExtensions
+	global musicFileExtensions
+	if path.isfile(configPath):
+		config = yaml.safe_load(open(configPath))
+		if not config is None:
+			dataFilesPath=config.get('dataPath').strip()
+			_karaokeFilesPaths=config.get('karaokePaths')
+			if not _karaokeFilesPaths is None:
+				karaokeFilesPaths=_karaokeFilesPaths
+			_musicFilesPaths=config.get('musicPaths')
+			if not _musicFilesPaths is None:
+				musicFilesPaths=_musicFilesPaths
+			_karaokeFileExtensions=config.get('karaokeFileExtensions')
+			if not _karaokeFileExtensions is None:
+				karaokeFileExtensions=_karaokeFileExtensions
+			_musicFileExtension=config.get('musicFileExtensions')
+			if not _musicFileExtension is None:
+				musicFileExtensions=_musicFileExtension
+			karaokeFileExtensions=list(map(lambda ext: ext.lower(), karaokeFileExtensions))
+			musicFileExtensions=list(map(lambda ext: ext.lower(), musicFileExtensions))
+			if(len(dataFilesPath)>0):
+				return True
+	return False
 
 # Main execution loop
-getSettings()
 clear()
-if(len(dataFilesPath)==0):
-	print("No data folder specified.")
+configPath=defaultConfigFilename
+if len(sys.argv)>1:
+	configPath=sys.argv[1]
+if not getSettings(configPath):
+	print(f"{Fore.RED}Could not read the required options from the \"{configPath}\" config file.{Style.RESET_ALL}\nMinimum required value is \"dataPath\".")
 else:
 	if not path.isdir(dataFilesPath):
 		makedirs(dataFilesPath)
