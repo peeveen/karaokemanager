@@ -23,8 +23,7 @@ class SongList:
 		if id.isdigit():
 			songIndex = int(id)
 			if songIndex <= 0 or songIndex > len(self.songs):
-				errors.append(
-					"Song index out of bounds: it must be between 1 and "+str(len(self.songs)))
+				errors.append(f"Song index out of bounds: it must be between 1 and {len(self.songs)}")
 				return None
 			return songIndex-1
 		id = id.lower()
@@ -39,11 +38,10 @@ class SongList:
 			if id in song.file.title.lower() or id in song.file.artist.lower():
 				matches.append(i)
 		if len(matches) == 0:
-			errors.append("No match found for given song ID \""+id+"\"")
+			errors.append(f"No match found for given song ID \"{id}\"")
 			return None
 		if len(matches) > 1:
-			errors.append(
-				"Multiple matches found for given song ID \""+id+"\"")
+			errors.append(f"Multiple matches found for given song ID \"{id}\"")
 			return None
 		return matches[0]
 

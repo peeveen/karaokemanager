@@ -115,8 +115,7 @@ def cueSong(params, errors):
 	else:
 		song = selectSong(params[0], musicFiles)
 		if not song is None:
-			messages.append("Added \""+song.title+"\" by " +
-							song.artist+" to the requests queue.")
+			messages.append(f"Added \"{song.title}\" by {song.artist} to the requests queue.")
 			try:
 				with open(requestsFilename, mode="a", encoding="utf-8") as f:
 					f.write(song.path+"\n")
@@ -126,32 +125,30 @@ def cueSong(params, errors):
 				if params[1]=="a" or params[1]=="add":
 					try:
 						with open(dataFilesPath+"\\"+backgroundMusicPlaylistFilename, mode="a", encoding="utf-8") as f:
-							f.write(song.artist+" - "+song.title+"\n")
+							f.write(f"{song.artist} - {song.title}\n")
 					except PermissionError:
 						errors.append("Failed to append to background music playlist file.")
 
 # Prints the app header
 def showHeader():
-	print(f'{Fore.GREEN}{Style.BRIGHT}Karaoke Manager v1.0{Style.RESET_ALL} (' +
-		  str(len(karaokeFiles))+"/"+str(len(musicFiles))+" karaoke/music files found)")
+	print(f'{Fore.GREEN}{Style.BRIGHT}Karaoke Manager v1.0{Style.RESET_ALL} ({len(karaokeFiles)}/{len(musicFiles)} karaoke/music files found)')
 
 # Splits a collection into smaller collections of the given size
 def chunks(l, n):
 	for i in range(0, len(l), n):
 		yield l[i:i + n]
 
-# Print the current list of singers. Groups them into columns of ten.
+# Print the current list of singers. Groups them into columns.
 def showSingers():
+	columnSize = 10
 	singersWithRequests = state.getSingersDisplayList()
 	if len(singersWithRequests) == 0:
 		print("No singers.")
 	else:
 		columnsOfSingers = []
-		indexStart = 1
-		for singersChunk in chunks(singersWithRequests, 10):
-			columnsOfSingers.append(SingerColumn(indexStart, singersChunk))
-			indexStart += 10
-		for row in range(0, min(len(singersWithRequests), 10)):
+		dictionary = [{'chunk': chunk, 'index': i} for i, chunk in enumerate(chunks(singersWithRequests, columnSize))]
+		columnsOfSingers = list(map(lambda item: SingerColumn((item['index']*columnSize)+1, item['chunk']), dictionary))
+		for row in range(0, min(len(singersWithRequests), columnSize)):
 			print(*map(lambda singerColumn: singerColumn.getRowText(row), columnsOfSingers))
 
 # Print the list of songs for the current singer, or whatever singer
@@ -166,24 +163,18 @@ def showSongs():
 			nameColor = f"{Fore.WHITE}"
 		else:
 			nameColor = f"{Fore.MAGENTA}"
-		print(f"{Fore.WHITE}Showing song list for "+nameColor +
-			  f"{Style.BRIGHT}"+activeSinger.name+f"{Style.RESET_ALL}:")
+		print(f"{Fore.WHITE}Showing song list for {nameColor}{Style.BRIGHT}{activeSinger.name}{Style.RESET_ALL}:")
 		for i, song in enumerate(activeSinger.songs):
-			songIndex = f"{Fore.YELLOW}{Style.BRIGHT}" + \
-				str(i+1)+f"{Style.RESET_ALL}"
+			songIndex = f"{Fore.YELLOW}{Style.BRIGHT}{i+1}{Style.RESET_ALL}"
 			if i < 9:
-				songIndex = " "+songIndex
+				songIndex = f" {songIndex}"
 			if isinstance(song.file, KaraokeFile):
-				print(songIndex+f": "+song.file.getSongListText(song.keyChange))
+				print(f"{songIndex}: {song.file.getSongListText(song.keyChange)}")
 			else:
-				print(songIndex+f": "+song.file.getSongListText())
-
-# Checks if the given string is a valid known keyword.
-# User can enter first character of keyword as a shortcut.
-def isKeyword(str, keyword):
-	return str == keyword or str == keyword[0]
+				print(f"{songIndex}: {song.file.getSongListText()}")
 
 # Processes the given command.
+# Returns true if the command is to quit the app.
 def processCommand(command):
 	global state
 	global errors
@@ -242,14 +233,14 @@ def getCommand():
 def showErrors():
 	global errors
 	for error in errors:
-		print(f'{Fore.RED}{Style.BRIGHT}'+error+f'{Style.RESET_ALL}')
+		print(f'{Fore.RED}{Style.BRIGHT}{error}{Style.RESET_ALL}')
 	errors = []
 
 # Shows any messages from the previous command
 def showMessages():
 	global messages
 	for message in messages:
-		print(f'{Fore.YELLOW}{Style.BRIGHT}'+message+f'{Style.RESET_ALL}')
+		print(f'{Fore.YELLOW}{Style.BRIGHT}{message}{Style.RESET_ALL}')
 	messages = []
 
 # Parses the name of a karaoke file, returning a KaraokeFile object
@@ -273,8 +264,9 @@ def parseMusicFilename(path, filename):
 def getBackgroundMusicPlaylist():
 	global backgroundMusicPlaylist
 	backgroundMusicPlaylist = set([])
-	if path.isfile(dataFilesPath+"\\"+backgroundMusicPlaylistFilename):
-		with open(dataFilesPath+"\\"+backgroundMusicPlaylistFilename, mode="r", encoding="utf-8") as f:
+	backgroundMusicFilePath=f"{dataFilesPath}\\{backgroundMusicPlaylistFilename}"
+	if path.isfile(backgroundMusicFilePath):
+		with open(backgroundMusicFilePath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
 			for line in lines:
 				line = line.strip()
@@ -313,10 +305,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 		counter += 1
 		percent = round((counter/songProgressCount)*100.0)
 		if percent > lastPercent:
-			message = "Looking for duplicates: " + \
-				str(percent)+"% done"
-			padding = " "*(119-len(message))
-			print(message+padding, end="\r")
+			print(padOrEllipsize(f"Looking for duplicates: {percent}% done", 119), end="\r")
 			lastPercent = percent
 		keys = list(songDict.keys())
 		for i in range(0, len(keys)):
@@ -332,11 +321,11 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 		firstletter = artist[0]
 		if firstletter.isalpha() and firstletter.islower():
 			if not isExemptFromLowerCaseCheck(artist):
-				error = "Artist \""+artist+"\" is not capitalised."
+				error = f"Artist \"{artist}\" is not capitalised."
 				songErrors.append(error)
 		if artist.startswith("The "):
 			if artist[4:] in artists and not isExemptFromTheCheck(artist):
-				error = "Artist \""+artist+"\" has a non-The variant."
+				error = f"Artist \"{artist}\" has a non-The variant."
 				songErrors.append(error)
 	artistCount = len(artistList)
 	songCount = len(files)
@@ -356,20 +345,18 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 				if not isExemptFromReversalCheck(bit1, bit2):
 					reverseCheck = bit2+" & "+bit1
 					if reverseCheck in artists:
-						error = "Artist \""+artist+"\" also appears as \""+reverseCheck+"\"."
+						error = f"Artist \"{artist}\" also appears as \"{reverseCheck}\"."
 						songErrors.append(error)
 		for j in range(i+1, artistCount):
 			counter += 1
 			percent = round((counter/artistProgressCount)*100.0)
 			if percent > lastPercent:
-				message = "Analyzing artists: "+str(percent)+"% done"
-				padding = " "*(119-len(message))
-				print(message+padding, end="\r")
+				print(padOrEllipsize(f"Analyzing artists: {percent}% done", 119), end="\r")
 				lastPercent = percent
 			compareArtist = artistList[j]
 			compareArtistLower = artistLowerList[j]
 			if artistLower == compareArtistLower and artist != compareArtist:
-				error = "Artist \""+artist+"\" has a case variation: \""+compareArtist+"\"."
+				error = f"Artist \"{artist}\" has a case variation: \"{compareArtist}\"."
 				songErrors.append(error)
 	songProgressCount = round((songCount*songCount)/2)
 	counter = 0
@@ -381,22 +368,19 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 		firstletter = songTitle[0]
 		if firstletter.isalpha() and firstletter.islower():
 			if not isExemptFromLowerCaseCheck(songTitle):
-				error = "Title \""+songTitle+"\" is not capitalised."
+				error = f"Title \"{songTitle}\" is not capitalised."
 				songErrors.append(error)
 		for j in range(i+1, songCount):
 			counter += 1
 			percent = round((counter/songProgressCount)*100.0)
 			if percent > lastPercent:
-				message = "Analyzing song titles (simple analysis): " + \
-					str(percent)+"% done"
-				padding = " "*(119-len(message))
-				print(message+padding, end="\r")
+				print(padOrEllipsize(f"Analyzing song titles (simple analysis): {percent}% done", 119), end="\r")
 				lastPercent = percent
 			compareTitle = files[j].title
 			compareTitleLower = files[j].lowerTitle
 			if songTitle != compareTitle:
 				if songTitleLower == compareTitleLower:
-					error = "Title \""+songTitle+"\" has a case variation: \""+compareTitle+"\"."
+					error = f"Title \"{songTitle}\" has a case variation: \"{compareTitle}\"."
 					songErrors.append(error)
 	lastPercent = -1
 	counter = 0
@@ -406,10 +390,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 			counter += 1
 			percent = round((counter/songProgressCount)*100.0)
 			if percent > lastPercent:
-				message = "Analyzing song titles (complex analysis): " + \
-					str(percent)+"% done"
-				padding = " "*(119-len(message))
-				print(message+padding, end="\r")
+				print(padOrEllipsize(f"Analyzing song titles (complex analysis): {percent}% done"), end="\r")
 				lastPercent = percent
 			keys = list(songDict.keys())
 			for i in range(0, len(keys)):
@@ -417,9 +398,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 					if not isExemptFromSimilarityCheck(keys[i], keys[j]):
 						similarityCalc = similarity(keys[i], keys[j])
 						if similarityCalc < 1.0 and similarityCalc > 0.9:
-							error = "Title \"" + \
-								keys[i]+"\" looks very similar to \"" + \
-								keys[j]+"\"."
+							error = f"Title \"{keys[i]}\" looks very similar to \"{keys[j]}\"."
 							songErrors.append(error)
 
 # Checks two strings for similarity.
@@ -451,7 +430,7 @@ def randomSongSuggestionGeneratorThread():
 				randomSongIndex = random.randrange(len(artistDict))
 				songKeys = list(artistDict.keys())
 				songString = songKeys[randomSongIndex]
-				suggestionString = artistString+"\n"+songString+"\n"
+				suggestionString = f"{artistString}\n{songString}\n"
 				try:
 					with open(randomSuggestionsFilename, mode="w", encoding="utf-8") as f:
 						f.writelines(suggestionString)
@@ -484,22 +463,20 @@ def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilen
 	global errors
 	dups=[]
 	errs=[]
-	message="Analyzing "+descr+" files..."
-	padding = " "*(119-len(message))
-	print(message+padding)
+	print(padOrEllipsize(f"Analyzing {descr} files...", 119))
 	analyzeFileSet(files,dictionary,full,errs,dups)
 	duplicates.extend(dups)
 	songErrors.extend(errs)
 	try:
-		with open(dataFilesPath+"\\"+dupFilename, mode="w", encoding="utf-8") as f:
+		with open(f"{dataFilesPath}\\{dupFilename}", mode="w", encoding="utf-8") as f:
 			for duplicate in dups:
 				f.writelines(duplicate.artist+" - "+duplicate.title+"\n")
 	except PermissionError:
 		errors.append("Failed to write duplicates file.")
 	try:
-		with open(dataFilesPath+"\\"+errFilename, mode="w", encoding="utf-8") as f:
+		with open(f"{dataFilesPath}\\{errFilename}", mode="w", encoding="utf-8") as f:
 			for songError in errs:
-				f.writelines(songError+"\n")
+				f.writelines(f"{songError}\n")
 	except PermissionError:
 		errors.append("Failed to write artist or title errors file.")
 
@@ -539,10 +516,7 @@ def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
 	filenameErrors=[]
 	for filePath in filePaths:
 		for root, _, files in walk(filePath):
-			message = "Scanning "+root
-			message = message[0:118]
-			padding = " "*(119-len(message))
-			print(message+padding, end="\r")
+			print(padOrEllipsize(f"Scanning {root}", 119), end="\r")
 			for file in files:
 				scanFileFunction(root,file,scannedFiles,secondaryFileCollection,filenameErrors)
 	return scannedFiles,filenameErrors
@@ -553,9 +527,9 @@ def writeTextFile(itemList,path):
 	try:
 		with open(path, mode="w", encoding="utf-8") as f:
 			for item in itemList:
-				f.writelines(item+"\n")
+				f.writelines(f"{item}\n")
 	except PermissionError:
-		errors.append("Failed to write "+path+".")
+		errors.append(f"Failed to write {path}.")
 
 # Builds the karaoke and music lists by analysing folder contents.
 def buildSongLists(params):
@@ -594,11 +568,12 @@ def buildSongLists(params):
 		analyzeFiles(fullanalyze,songErrors,duplicates)
 		anythingToReport = anythingToReport or len(songErrors)>0 or len(duplicates)>0
 	if anythingToReport:
-		print(f"{Fore.WHITE}{Style.BRIGHT}Scan complete.                                                       ")
-		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} " + str(len(filenameErrors)))
-		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} "+str(len(songErrors)))
-		print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} " + str(len(duplicates)))
-		print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} " + str(len(backgroundMusicPlaylist)))
+		scanCompleteMessage=padOrEllipsize("Scan complete.", 69)
+		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
+		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(filenameErrors)}")
+		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(songErrors)}")
+		print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} {len(duplicates)}")
+		print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} {len(backgroundMusicPlaylist)}")
 		try:
 			input("Press Enter to continue ...")
 		except EOFError:

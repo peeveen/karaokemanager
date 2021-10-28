@@ -85,7 +85,7 @@ def parseCommand(strCommand, errors):
 		commandBits[i] = commandBit.strip()
 	commandType = parseCommandType(commandBits[0])
 	if commandType is None:
-		errors.append("Unknown command: \""+commandBits[0]+"\"")
+		errors.append(f"Unknown command: \"{commandBits[0]}\"")
 		return None
 	else:
 		return Command(commandType, commandBits[1:])

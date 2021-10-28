@@ -11,4 +11,4 @@ class Song:
 		anyKeyChange = ''
 		if not self.keyChange is None:
 			anyKeyChange = self.keyChange
-		file.write("\t"+self.file.path+"|"+anyKeyChange+"\n")
+		file.write(f"\t{self.file.path}|{anyKeyChange}\n")

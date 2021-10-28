@@ -27,9 +27,9 @@ class MusicFile:
 		return matchCount == len(bits)
 
 	def getText(self):
-		artistText = padOrEllipsize(self.artist+" ", 30, ".")
+		artistText = padOrEllipsize(f"{self.artist} ", 30, ".")
 		titleText = padOrEllipsize(self.title, 60, " ")
-		return f"{Fore.CYAN}{Style.BRIGHT}"+artistText+f"{Style.RESET_ALL} {Fore.GREEN}{Style.BRIGHT}"+titleText+f"{Style.RESET_ALL}"
+		return f"{Fore.CYAN}{Style.BRIGHT}{artistText}{Style.RESET_ALL} {Fore.GREEN}{Style.BRIGHT}{titleText}{Style.RESET_ALL}"
 
 	def getOptionText(self):
 		return self.getText()

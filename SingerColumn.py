@@ -21,14 +21,13 @@ class SingerColumn:
 	def getRowText(self, row):
 		if len(self.singers) > row:
 			index = self.indexStart+row
-			indexText = str(index)
+			indexText = f"{index}"
 			if index < 10:
-				indexText = " "+indexText
+				indexText = f" {indexText}"
 			singer = self.singers[row]
 			songCount = len(singer.songs)
 			plainIndexText = indexText
-			indexText = f"{Fore.YELLOW}{Style.BRIGHT}" + \
-				indexText+f"{Style.RESET_ALL}"
+			indexText = f"{Fore.YELLOW}{Style.BRIGHT}{indexText}{Style.RESET_ALL}"
 			nameText = ''
 			if songCount > 0:
 				nameText += f"{Fore.WHITE}{Style.BRIGHT}"
@@ -36,10 +35,8 @@ class SingerColumn:
 				nameText += f"{Fore.MAGENTA}{Style.NORMAL}"
 			plainNameText = singer.name
 			nameText += singer.name
-			rowText = indexText+": "+nameText + \
-				"("+str(songCount)+")"+f"{Style.RESET_ALL}"
-			plainRowText = plainIndexText+": " + \
-				plainNameText+"("+str(songCount)+")"
+			rowText = f"{indexText}: {nameText}({songCount}){Style.RESET_ALL}"
+			plainRowText = f"{plainIndexText}: {plainNameText}({songCount})"
 			sizeDiff = self.columnWidth-len(plainRowText)
 			padding = " "*sizeDiff
 			return rowText+padding

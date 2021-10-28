@@ -53,8 +53,7 @@ def showSongList(searchString, files, selectionAllowed):
 		if len(options) == 1 and selectionAllowed:
 			return options[0]
 		if len(options) == 0:
-			print(f"{Fore.RED}{Style.BRIGHT}No results found for \"" +
-				  searchString+f"\" ...{Style.RESET_ALL}")
+			print(f"{Fore.RED}{Style.BRIGHT}No results found for \"{searchString}\" ...{Style.RESET_ALL}")
 			try:
 				input("Press Enter to continue.")
 			except EOFError:
@@ -65,19 +64,16 @@ def showSongList(searchString, files, selectionAllowed):
 		totalShownCount = 0
 		startCount = 1
 		for i, option in enumerate(options):
-			strIndex = str(i+1)
+			strIndex = f"{i+1}"
 			padding = (3-len(strIndex))*" "
 			strIndex = padding+strIndex
-			print(f"{Fore.YELLOW}{Style.BRIGHT}"+strIndex +
-				  f"{Style.RESET_ALL}: "+option.getOptionText())
+			print(f"{Fore.YELLOW}{Style.BRIGHT}{strIndex}{Style.RESET_ALL}: {option.getOptionText()}")
 			shownCount += 1
 			totalShownCount += 1
 			if shownCount == SCREENHEIGHT-2 or i == len(options)-1:
-				print("Showing results "+f"{Fore.WHITE}{Style.BRIGHT}"+str(startCount)+"-"+str(startCount+(shownCount-1))+f"{Style.RESET_ALL}" +
-					  f" of {Fore.WHITE}{Style.BRIGHT}"+str(len(options))+f"{Style.RESET_ALL} for {Fore.YELLOW}{Style.BRIGHT}\""+searchString+f"\"{Style.RESET_ALL}.")
+				print(f"Showing results {Fore.WHITE}{Style.BRIGHT}{startCount}-{startCount+(shownCount-1)}{Style.RESET_ALL} of {Fore.WHITE}{Style.BRIGHT}{len(options)}{Style.RESET_ALL} for {Fore.YELLOW}{Style.BRIGHT}\"{searchString}\"{Style.RESET_ALL}.")
 				if len(options) > totalShownCount:
-					songNum = getSongChoice("Press Enter for more, x to cancel"+optionalSelectionText +
-											" or more text to refine the search criteria: ", options, True, selectionAllowed)
+					songNum = getSongChoice(f"Press Enter for more, x to cancel{optionalSelectionText} or more text to refine the search criteria: ", options, True, selectionAllowed)
 					if songNum is None:
 						return None
 					elif songNum == "":
@@ -97,8 +93,7 @@ def showSongList(searchString, files, selectionAllowed):
 				except EOFError:
 					pass
 				return None
-			songNum = getSongChoice(
-				"Enter song number, or X to cancel, or more text to add to the search criteria: ", options, False, selectionAllowed)
+			songNum = getSongChoice("Enter song number, or X to cancel, or more text to add to the search criteria: ", options, False, selectionAllowed)
 			if songNum is None:
 				return None
 			elif isinstance(songNum, MusicFile):

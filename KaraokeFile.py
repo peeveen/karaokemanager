@@ -13,13 +13,13 @@ class KaraokeFile(MusicFile):
 	def getOptionText(self):
 		result = MusicFile.getOptionText(self)
 		companyText = padOrEllipsize(self.company, 20, " ")
-		return result+f"{Style.BRIGHT}{Fore.YELLOW}"+companyText+f"{Style.RESET_ALL}"
+		return result+f"{Style.BRIGHT}{Fore.YELLOW}{companyText}{Style.RESET_ALL}"
 
 	def getSongListText(self, keyChange):
 		txt = MusicFile.getSongListText(self)
 		if keyChange is None:
 			keyChange = ""
 		else:
-			keyChange = "("+keyChange+")"
-		return txt+f" {Fore.MAGENTA}{Style.BRIGHT}"+keyChange+f"{Style.RESET_ALL}"
+			keyChange = f"({keyChange})"
+		return f"{txt} {Fore.MAGENTA}{Style.BRIGHT}{keyChange}{Style.RESET_ALL}"
 

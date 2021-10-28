@@ -85,8 +85,7 @@ class State:
 		if id.isdigit():
 			singerIndex = int(id)
 			if singerIndex <= 0 or singerIndex > len(self.singers):
-				errors.append(
-					"Singer index out of bounds: it must be between 1 and "+str(len(self.singers)))
+				errors.append(f"Singer index out of bounds: it must be between 1 and {len(self.singers)}")
 				return None
 			return singerIndex-1
 		id = id.lower()
@@ -113,11 +112,10 @@ class State:
 			if id in singer.name.lower():
 				matches.append(i)
 		if len(matches) == 0:
-			errors.append("No match found for given singer ID \""+id+"\"")
+			errors.append(f"No match found for given singer ID \"{id}\"")
 			return None
 		if len(matches) > 1:
-			errors.append(
-				"Multiple matches found for given singer ID \""+id+"\"")
+			errors.append(f"Multiple matches found for given singer ID \"{id}\"")
 			return None
 		return matches[0]
 
@@ -131,8 +129,7 @@ class State:
 		sameNameSingers = [
 			singer for singer in self.singers if singer.name.lower() == singerName.lower()]
 		if len(sameNameSingers) > 0:
-			errors.append("Singer with name \"" +
-						  singerName+"\" already exists.")
+			errors.append(f"Singer with name \"{singerName}\" already exists.")
 		else:
 			newState = self.mutate()			
 			newState.singers.insert(index, Singer(singerName))
@@ -215,8 +212,7 @@ class State:
 	def add(self, params, karaokeFiles, errors):
 		paramCount = len(params)
 		if paramCount == 0:
-			errors.append(
-				"Not enough arguments. Expected name of new singer, or existing singer name/index.")
+			errors.append("Not enough arguments. Expected name of new singer, or existing singer name/index.")
 		elif paramCount == 1:
 			return self.addNewSinger(params[0], len(self.singers), errors)
 		else:
@@ -229,8 +225,7 @@ class State:
 	def insert(self, params, karaokeFiles, errors):
 		paramCount = len(params)
 		if paramCount < 2:
-			errors.append(
-				"Not enough arguments. Expected name of new singer, or existing singer name/index.")
+			errors.append("Not enough arguments. Expected name of new singer, or existing singer name/index.")
 		elif paramCount == 2:
 			return self.insertNewSinger(params[0], params[1], errors)
 		elif paramCount > 2:
@@ -285,7 +280,7 @@ class State:
 			if not singer is None:
 				for singer in self.singers:
 					if singer.name.lower() == newName:
-						errors.append("Name \""+newName+"\" already exists.")
+						errors.append(f"Name \"{newName}\" already exists.")
 						return
 				newState = self.mutate()
 				singer = newState.getSingerFromID(params[0], False, False, errors)
@@ -335,8 +330,7 @@ class State:
 
 	def changeSongKey(self, params, errors):
 		if len(params) < 3:
-			errors.append(
-				"Not enough arguments. Expected singer ID, song ID, and new key change value.")
+			errors.append("Not enough arguments. Expected singer ID, song ID, and new key change value.")
 		else:
 			singer = self.getSingerFromID(params[0], False, False, errors)
 			if not singer is None:
@@ -452,7 +446,6 @@ def getKeyChangeValue(keyChange, errors):
 						if keyChange[0] == '-':
 							return -intval
 						return intval
-		errors.append(
-			"Invalid key change, should in format \"+N\" or \"-N\", where N is a value between 1 and 5.")
+		errors.append("Invalid key change, should in format \"+N\" or \"-N\", where N is a value between 1 and 5.")
 		return -99
 	return None
