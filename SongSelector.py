@@ -2,6 +2,13 @@ from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
 from colorama import Fore, Style
 from MusicFile import MusicFile
 
+# Song selector function. Shows the list of "songs" to the user and asks them to pick one,
+# cancel, or enter more text to narrow the search.
+def selectSong(searchString, songs):
+	return showSongList(searchString, songs, True)
+
+# Asks the user to choose a song from the displayed list, and awaits a valid
+# response.
 def getSongChoice(message, options, blankAllowed, selectionAllowed):
 	invalidChoice = True
 	while invalidChoice:
@@ -32,9 +39,7 @@ def getSongChoice(message, options, blankAllowed, selectionAllowed):
 			else:
 				return songNum
 
-def selectSong(searchString, songs):
-	return showSongList(searchString, songs, True)
-
+# Displays the list of songs and optionally prompts for a response.
 def showSongList(searchString, files, selectionAllowed):
 	searchAgain = True
 	if selectionAllowed:

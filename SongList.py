@@ -1,3 +1,4 @@
+# Class representing the list of songs that a singer has chosen.
 class SongList:
 	name = ''
 	songs = []
@@ -18,7 +19,7 @@ class SongList:
 			indent = ""
 		file.writelines(indent+self.name+"\n")
 
-	def getSongIndexFromID(self, id, endAllowed):
+	def getSongIndexFromID(self, id, endAllowed, errors):
 		if id.isdigit():
 			songIndex = int(id)
 			if songIndex <= 0 or songIndex > len(self.songs):
@@ -46,11 +47,10 @@ class SongList:
 			return None
 		return matches[0]
 
-	def moveSong(self, songToMoveID, songToMoveBeforeID):
-		matchedSongToMoveIndex = self.getSongIndexFromID(songToMoveID, False)
+	def moveSong(self, songToMoveID, songToMoveBeforeID, errors):
+		matchedSongToMoveIndex = self.getSongIndexFromID(songToMoveID, False, errors)
 		if not matchedSongToMoveIndex is None:
-			matchedSongToMoveBeforeIndex = self.getSongIndexFromID(
-				songToMoveBeforeID, True)
+			matchedSongToMoveBeforeIndex = self.getSongIndexFromID(songToMoveBeforeID, True, errors)
 			if not matchedSongToMoveBeforeIndex is None:
 				songToMove = self.songs[matchedSongToMoveIndex]
 				del self.songs[matchedSongToMoveIndex]

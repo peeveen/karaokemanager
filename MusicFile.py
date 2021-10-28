@@ -1,6 +1,7 @@
 from DisplayFunctions import padOrEllipsize
 from colorama import Fore, Style
 
+# Class describing a music file
 class MusicFile:
 	path = None
 	title = None

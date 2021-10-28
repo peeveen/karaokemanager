@@ -1,3 +1,4 @@
+# Class representing a chosen song, with any requested key change
 class Song:
 	file = None
 	keyChange = None

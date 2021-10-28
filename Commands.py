@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+# List of commands as enums
 class CommandType(Enum):
 	ADD = auto()
 	INSERT = auto()
@@ -20,6 +21,8 @@ class CommandType(Enum):
 	MUSICSEARCH = auto()
 	CUE = auto()
 
+# Command definition class. A combination of the command enum
+# and the string that is associated with the command.
 class CommandDefinition:
 	commandType = None
 	commandString = None
@@ -28,7 +31,7 @@ class CommandDefinition:
 		self.commandType = commandType
 		self.commandString = commandString
 
-
+# List of command definitions
 commands = [
 	CommandDefinition(CommandType.ADD, "add"),
 	CommandDefinition(CommandType.INSERT, "insert"),
@@ -50,14 +53,19 @@ commands = [
 	CommandDefinition(CommandType.MUSICSEARCH, "??")
 ]
 
+# Result of a parsed command
 class Command:
 	commandType = None
+	# The series of additional parameters that were entered after the command string
+	# e.g. "add,Steve,Don't Look Back In Anger" would have two params: "Steve", and
+	# "Don't Look Back In Anger"
 	params = []
 
 	def __init__(self, commandType, params):
 		self.commandType = commandType
 		self.params = params
 
+# Attempts to parse the command type by checking the command string that was entered.
 def parseCommandType(strCommand):
 	strCommand = strCommand.lower()
 	for command in commands:
@@ -65,7 +73,8 @@ def parseCommandType(strCommand):
 			return command.commandType
 	return None
 
-def parseCommand(strCommand):
+# Parses the given command line into a Command object
+def parseCommand(strCommand, errors):
 	# Special case = search
 	if strCommand[0:2] == "??":
 		return Command(CommandType.MUSICSEARCH, [strCommand[2:]])

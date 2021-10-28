@@ -6,9 +6,15 @@ from WindowsInput import PressKey, ReleaseKey, KeyCodes
 from Song import Song
 from time import sleep
 
+# Filename to persist the state to.
+# Gets written after every command, in case the app crashes.
 stateFilename = "KaraokeManager.state.txt"
+# Filename to persist the list of singers to.
+# Gets written after every command, in the case the app crashes.
+# Gets read by the Winamp SingersQueue plugin to show the current queue onscreen.
 singersQueueFilename = "KaraokeManager.singers.txt"
 
+# Current state of the app.
 class State:
 	singers = None
 	firstSong = True
@@ -23,6 +29,7 @@ class State:
 		self.queuePath = dataFolder+"\\"+singersQueueFilename
 		self.load(karaokeFiles)
 
+	# Load the last saved state.
 	def load(self, karaokeFiles):
 		self.singers = []
 		if path.isfile(self.statePath):
@@ -66,13 +73,15 @@ class State:
 		singersCopy = self.singers.copy()
 		return singersCopy
 
+	# Make a deep copy of the current state, ready for alteration.
+	# We create a chain of previous/next states for undo/redo.
 	def mutate(self):
 		newState = deepcopy(self)
 		self.nextState = newState
 		newState.prevState = self
 		return newState
 
-	def getSingerIndexFromID(self, id, endAllowed, reqAllowed):
+	def getSingerIndexFromID(self, id, endAllowed, reqAllowed, errors):
 		if id.isdigit():
 			singerIndex = int(id)
 			if singerIndex <= 0 or singerIndex > len(self.singers):
@@ -96,11 +105,11 @@ class State:
 				else:
 					errors.append("There is no active song list to add to.")
 					return None
-		for i, singer in enumerate(state.singers):
+		for i, singer in enumerate(self.singers):
 			if singer.name.lower() == id:
 				return i
 		matches = []
-		for i, singer in enumerate(state.singers):
+		for i, singer in enumerate(self.singers):
 			if id in singer.name.lower():
 				matches.append(i)
 		if len(matches) == 0:
@@ -112,13 +121,13 @@ class State:
 			return None
 		return matches[0]
 
-	def getSingerFromID(self, id, endAllowed, reqAllowed):
-		singerIndex = self.getSingerIndexFromID(id, endAllowed, reqAllowed)
+	def getSingerFromID(self, id, endAllowed, reqAllowed, errors):
+		singerIndex = self.getSingerIndexFromID(id, endAllowed, reqAllowed, errors)
 		if singerIndex is None:
 			return None
 		return self.singers[singerIndex]
 
-	def addNewSinger(self, singerName, index):
+	def addNewSinger(self, singerName, index, errors):
 		sameNameSingers = [
 			singer for singer in self.singers if singer.name.lower() == singerName.lower()]
 		if len(sameNameSingers) > 0:
@@ -130,37 +139,35 @@ class State:
 			return newState
 		return self
 
-	def deleteSinger(self, singerID):
-		matchedSingerIndex = self.getSingerIndexFromID(singerID, False, False)
+	def deleteSinger(self, singerID, errors):
+		matchedSingerIndex = self.getSingerIndexFromID(singerID, False, False, errors)
 		if not matchedSingerIndex is None:
 			newState = self.mutate()
 			del newState.singers[matchedSingerIndex]
 			return newState
 		return self
 
-	def deleteSongFromSinger(self, singerID, songID):
-		matchedSingerIndex = self.getSingerIndexFromID(singerID, False, False)
+	def deleteSongFromSinger(self, singerID, songID, errors):
+		matchedSingerIndex = self.getSingerIndexFromID(singerID, False, False, errors)
 		if not matchedSingerIndex is None:
-			matchedSinger = state.singers[matchedSingerIndex]
-			matchedSongIndex = matchedSinger.getSongIndexFromID(songID, False)
+			matchedSinger = self.singers[matchedSingerIndex]
+			matchedSongIndex = matchedSinger.getSongIndexFromID(songID, False, errors)
 			if not matchedSongIndex is None:
 				newState = self.mutate()
 				del newState.singers[matchedSingerIndex].songs[matchedSongIndex]
 				return newState
 		return self
 
-	def insertNewSinger(self, singerName, singerID):
-		matchedSingerIndex = self.getSingerIndexFromID(singerID, True, False)
+	def insertNewSinger(self, singerName, singerID, errors):
+		matchedSingerIndex = self.getSingerIndexFromID(singerID, True, False, errors)
 		if not matchedSingerIndex is None:
-			return self.addNewSinger(singerName, matchedSingerIndex)
+			return self.addNewSinger(singerName, matchedSingerIndex, errors)
 		return self
 
-	def moveSinger(self, singerToMoveID, singerID):
-		matchedSingerToMoveIndex = self.getSingerIndexFromID(
-			singerToMoveID, False, False)
+	def moveSinger(self, singerToMoveID, singerID, errors):
+		matchedSingerToMoveIndex = self.getSingerIndexFromID(singerToMoveID, False, False, errors)
 		if not matchedSingerToMoveIndex is None:
-			matchedSingerIndex = self.getSingerIndexFromID(
-				singerID, True, False)
+			matchedSingerIndex = self.getSingerIndexFromID(singerID, True, False, errors)
 			if not matchedSingerIndex is None:
 				newState = self.mutate()
 				singerToMove = newState.singers[matchedSingerToMoveIndex]
@@ -169,99 +176,92 @@ class State:
 				return newState
 		return self
 
-	def addSongForSinger(self, singerID, songTitle, keyChange, index, karaokeFiles):
-		keychangeval = getKeyChangeValue(keyChange)
+	def addSongForSinger(self, singerID, songTitle, keyChange, index, karaokeFiles, errors):
+		keychangeval = getKeyChangeValue(keyChange, errors)
 		if keychangeval != -99:
-			matchedSinger = self.getSingerFromID(singerID, False, True)
+			matchedSinger = self.getSingerFromID(singerID, False, True, errors)
 			if not matchedSinger is None:
 				karaokeSong = selectSong(songTitle, karaokeFiles)
 				if not karaokeSong is None:
 					if index == -1:
 						index = len(matchedSinger.songs)
 					newState = self.mutate()
-					matchedSinger = newState.getSingerFromID(
-						singerID, False, True)
-					matchedSinger.insertSong(
-						index, Song(karaokeSong, keyChange))
+					matchedSinger = newState.getSingerFromID(singerID, False, True, errors)
+					matchedSinger.insertSong(index, Song(karaokeSong, keyChange))
 					return newState
 		return self
 
-	def insertSongForSinger(self, singerID, songID, songTitle, keyChange, karaokeFiles):
-		matchedSinger = self.getSingerFromID(singerID, False, True)
+	def insertSongForSinger(self, singerID, songID, songTitle, keyChange, karaokeFiles, errors):
+		matchedSinger = self.getSingerFromID(singerID, False, True, errors)
 		if not matchedSinger is None:
-			matchedSongIndex = matchedSinger.getSongIndexFromID(songID, True)
+			matchedSongIndex = matchedSinger.getSongIndexFromID(songID, True, errors)
 			if not matchedSongIndex is None:
-				return self.addSongForSinger(
-					singerID, songTitle, keyChange, matchedSongIndex, karaokeFiles)
+				return self.addSongForSinger(singerID, songTitle, keyChange, matchedSongIndex, karaokeFiles, errors)
 		return self
 
-	def moveSong(self, singerID, songToMoveID, songToMoveBeforeID):
-		matchedSinger = self.getSingerFromID(singerID, False, True)
+	def moveSong(self, singerID, songToMoveID, songToMoveBeforeID, errors):
+		matchedSinger = self.getSingerFromID(singerID, False, True, errors)
 		if not matchedSinger is None:
-			matchedSongToMoveIndex = matchedSinger.getSongIndexFromID(
-				songToMoveID, False)
+			matchedSongToMoveIndex = matchedSinger.getSongIndexFromID(songToMoveID, False, errors)
 			if not matchedSongToMoveIndex is None:
-				matchedSongToMoveBeforeIndex = matchedSinger.getSongIndexFromID(
-					songToMoveBeforeID, True)
+				matchedSongToMoveBeforeIndex = matchedSinger.getSongIndexFromID(songToMoveBeforeID, True, errors)
 				if not matchedSongToMoveBeforeIndex is None:
 					newState = self.mutate()
-					matchedSinger = newState.getSingerFromID(
-						singerID, False, True)
-					matchedSinger.moveSong(songToMoveID, songToMoveBeforeID)
+					matchedSinger = newState.getSingerFromID(singerID, False, True, errors)
+					matchedSinger.moveSong(songToMoveID, songToMoveBeforeID, errors)
 					return newState
 		return self
 
-	def add(self, params, karaokeFiles):
+	def add(self, params, karaokeFiles, errors):
 		paramCount = len(params)
 		if paramCount == 0:
 			errors.append(
 				"Not enough arguments. Expected name of new singer, or existing singer name/index.")
 		elif paramCount == 1:
-			return self.addNewSinger(params[0], len(self.singers))
+			return self.addNewSinger(params[0], len(self.singers), errors)
 		else:
 			keyChange = None
 			if paramCount > 2:
 				keyChange = params[2]
-			return self.addSongForSinger(params[0], params[1], keyChange, -1, karaokeFiles)
+			return self.addSongForSinger(params[0], params[1], keyChange, -1, karaokeFiles, errors)
 		return self
 
-	def insert(self, params, karaokeFiles):
+	def insert(self, params, karaokeFiles, errors):
 		paramCount = len(params)
 		if paramCount < 2:
 			errors.append(
 				"Not enough arguments. Expected name of new singer, or existing singer name/index.")
 		elif paramCount == 2:
-			return self.insertNewSinger(params[0], params[1])
+			return self.insertNewSinger(params[0], params[1], errors)
 		elif paramCount > 2:
 			keyChange = None
 			if paramCount > 3:
 				keyChange = params[3]
-			return self.insertSongForSinger(
-				params[0], params[1], params[2], keyChange, karaokeFiles)
+			return self.insertSongForSinger(params[0], params[1], params[2], keyChange, karaokeFiles, errors)
 		return self
 
-	def move(self, params):
+	def move(self, params, errors):
 		paramCount = len(params)
 		if paramCount < 2:
 			errors.append("Not enough arguments. Expected ID of singer.")
 		elif paramCount == 2:
 			# Move a singer in the list
-			return self.moveSinger(params[0], params[1])
+			return self.moveSinger(params[0], params[1], errors)
 		elif paramCount > 2:
 			# Move a song in a singer's list
-			return self.moveSong(params[0], params[1], params[2])
+			return self.moveSong(params[0], params[1], params[2], errors)
 		return self
 
-	def delete(self, params):
+	def delete(self, params, errors):
 		paramCount = len(params)
 		if paramCount < 1:
 			errors.append("Not enough arguments. Expected ID of singer.")
 		elif paramCount == 1:
 			# Delete a singer
-			return self.deleteSinger(params[0])
+			return self.deleteSinger(params[0], errors)
 		elif paramCount > 1:
 			# Delete a song from a singer
-			return self.deleteSongFromSinger(params[0], params[1])
+			return self.deleteSongFromSinger(params[0], params[1], errors)
 		return self
 
 	def undo(self):
@@ -276,12 +276,11 @@ class State:
 		else:
 			return self.nextState
 
-	def renameSinger(self, params):
+	def renameSinger(self, params, errors):
 		if len(params) < 2:
-			errors.append(
-				"Not enough arguments. Expected singer ID and new name.")
+			errors.append("Not enough arguments. Expected singer ID and new name.")
 		else:
-			singer = self.getSingerFromID(params[0], False, False)
+			singer = self.getSingerFromID(params[0], False, False, errors)
 			newName = params[1]
 			if not singer is None:
 				for singer in self.singers:
@@ -289,7 +288,7 @@ class State:
 						errors.append("Name \""+newName+"\" already exists.")
 						return
 				newState = self.mutate()
-				singer = newState.getSingerFromID(params[0], False, False)
+				singer = newState.getSingerFromID(params[0], False, False, errors)
 				singer.name = newName
 				return newState
 		return self
@@ -312,15 +311,15 @@ class State:
 	def setSongListToSinger(self, singer):
 		self.activeSongListSingerName = singer.name
 
-	def list(self, params):
+	def list(self, params, errors):
 		if len(params) == 0:
-			nextState = state.mutate()
+			nextState = self.mutate()
 			nextState.setSongListToNextSinger()
 			return nextState
 		else:
-			singer = self.getSingerFromID(params[0], False, True)
+			singer = self.getSingerFromID(params[0], False, True, errors)
 			if not singer is None:
-				nextState = state.mutate()
+				nextState = self.mutate()
 				nextState.setSongListToSinger(singer)
 				return nextState
 
@@ -334,30 +333,30 @@ class State:
 			return self.nextSinger()
 		return activeSinger[0]
 
-	def changeSongKey(self, params):
+	def changeSongKey(self, params, errors):
 		if len(params) < 3:
 			errors.append(
 				"Not enough arguments. Expected singer ID, song ID, and new key change value.")
 		else:
-			singer = self.getSingerFromID(params[0], False, False)
+			singer = self.getSingerFromID(params[0], False, False, errors)
 			if not singer is None:
-				songIndex = singer.getSongIndexFromID(params[1], False)
+				songIndex = singer.getSongIndexFromID(params[1], False, errors)
 				if not songIndex is None:
 					keyChangeStr = params[2]
 					if keyChangeStr == "0":
 						keyChangeStr = None
-					keyChangeValue = getKeyChangeValue(keyChangeStr)
+					keyChangeValue = getKeyChangeValue(keyChangeStr, errors)
 					if keyChangeValue != -99:
 						newState = self.mutate()
-						singer = newState.getSingerFromID(params[0], False, False)
+						singer = newState.getSingerFromID(params[0], False, False, errors)
 						if not singer is None:
-							songIndex = singer.getSongIndexFromID(params[1], False)
+							songIndex = singer.getSongIndexFromID(params[1], False, errors)
 							if not songIndex is None:
 								singer.songs[songIndex].keyChange = keyChangeStr
 								return newState
 		return self
 
-	def play(self, params, cycleQueue):
+	def play(self, params, cycleQueue, errors):
 		if len(params) > 0:
 			song = params[0]
 		else:
@@ -365,7 +364,7 @@ class State:
 		if not self.nextSinger() is None:
 			newState = self.mutate()
 			nextSinger = newState.nextSinger()
-			songToPlayIndex = nextSinger.getSongIndexFromID(song, False)
+			songToPlayIndex = nextSinger.getSongIndexFromID(song, False, errors)
 			if not songToPlayIndex is None:
 				song = nextSinger.songs[songToPlayIndex]
 				fileToStart = nextSinger.songs[songToPlayIndex].file.path
@@ -373,11 +372,11 @@ class State:
 					newState.singers.remove(nextSinger)
 					newState.singers.append(nextSinger)
 				del nextSinger.songs[songToPlayIndex]
-				if self.firstSong:
+				if newState.firstSong:
 					startfile(fileToStart)
 					sleep(5)
-					self.firstSong = False
-				applyKeyChange(song.keyChange)
+					newState.firstSong = False
+				applyKeyChange(song.keyChange, errors)
 				startfile(fileToStart)
 				return newState
 		else:
@@ -386,7 +385,7 @@ class State:
 
 
 
-
+# Sends the Pacemaker hotkey to knock the pitch down one semitone.
 def pitchDown():
 	PressKey(KeyCodes.VK_SHIFT)
 	PressKey(KeyCodes.VK_CTRL)
@@ -396,6 +395,7 @@ def pitchDown():
 	ReleaseKey(KeyCodes.VK_SHIFT)
 	ReleaseKey(KeyCodes.VK_CTRL)
 
+# Sends the Pacemaker hotkey to raise the pitch up one semitone.
 def pitchUp():
 	PressKey(KeyCodes.VK_SHIFT)
 	PressKey(KeyCodes.VK_CTRL)
@@ -405,6 +405,7 @@ def pitchUp():
 	ReleaseKey(KeyCodes.VK_SHIFT)
 	ReleaseKey(KeyCodes.VK_CTRL)
 
+# Sends the Pacemaker hotkey to reset the pitch change to zero.
 def resetPitch():
 	PressKey(KeyCodes.VK_SHIFT)
 	PressKey(KeyCodes.VK_CTRL)
@@ -414,9 +415,11 @@ def resetPitch():
 	ReleaseKey(KeyCodes.VK_SHIFT)
 	ReleaseKey(KeyCodes.VK_CTRL)
 
-def applyKeyChange(keyChange):
+# Sends the correct sequence of hotkeys to set the key change to
+# whatever the user requested for a particular song.
+def applyKeyChange(keyChange, errors):
 	resetPitch()
-	keyChangeVal = getKeyChangeValue(keyChange)
+	keyChangeVal = getKeyChangeValue(keyChange, errors)
 	if not keyChangeVal is None and keyChangeVal != -99:
 		while keyChangeVal != 0:
 			if keyChangeVal < 0:
@@ -425,7 +428,10 @@ def applyKeyChange(keyChange):
 			else:
 				pitchUp()
 				keyChangeVal -= 1
-				
+
+# Given a path, get the karaoke file that matches it.
+# Used when restoring state on startup to check that a cued-up song still
+# exists.				
 def getKaraokeFileFromPath(path, karaokeFiles):
 	path = path.lower()
 	matches = [
@@ -434,7 +440,8 @@ def getKaraokeFileFromPath(path, karaokeFiles):
 		return matches[0]
 	return None
 
-def getKeyChangeValue(keyChange):
+# Parses a keychange string.
+def getKeyChangeValue(keyChange, errors):
 	if not keyChange is None:
 		if len(keyChange) == 2:
 			if keyChange[0] == '+' or keyChange[0] == '-':

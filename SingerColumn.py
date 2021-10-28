@@ -1,5 +1,7 @@
 from colorama import Fore, Style
 
+# Helper class representing an on-screen column of singers, in the singers
+# display.
 class SingerColumn:
 	singers = []
 	indexStart = 0

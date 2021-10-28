@@ -1,5 +1,6 @@
 from SongList import SongList
 
+# Class describing a singer, and their current list of selected songs.
 class Singer(SongList):
 	def __init__(self, name):
 		SongList.__init__(self, name)
@@ -10,11 +11,11 @@ class Singer(SongList):
 	def writeToQueueFile(self, file):
 		SongList.writeToQueueFile(self, file)
 
-	def getSongIndexFromID(self, id, endAllowed):
-		return SongList.getSongIndexFromID(self, id, endAllowed)
+	def getSongIndexFromID(self, id, endAllowed, errors):
+		return SongList.getSongIndexFromID(self, id, endAllowed, errors)
 
-	def moveSong(self, songToMoveID, songToMoveBeforeID):
-		return SongList.moveSong(self, songToMoveID, songToMoveBeforeID)
+	def moveSong(self, songToMoveID, songToMoveBeforeID, errors):
+		return SongList.moveSong(self, songToMoveID, songToMoveBeforeID, errors)
 
 	def insertSong(self, position, song):
 		SongList.insertSong(self, position, song)

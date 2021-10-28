@@ -16,34 +16,60 @@ from SingerColumn import SingerColumn
 from SongSelector import selectSong
 from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
 
+# The current state
 state = None
+# List of paths to karaoke files
 karaokeFilesPaths = None
+# List of paths to music (MP3/M4A/whatever) files
 musicFilesPaths = None
+# Path to the folder where data files (music playlist, exemption lists, etc) are stored
 dataFilesPath = None
-dataFolder = getenv("APPDATA")+"\\FullHouse Entertainment\\KaraokeManager"
+# Path to the appdata folder. We will write "temporary" data here, like the persistent state, request queue, etc.
+appDataFolder = getenv("APPDATA")+"\\FullHouse Entertainment\\KaraokeManager"
+# Filename of the background music list file (just artist & titles)
 backgroundMusicPlaylistFilename = "BackgroundMusicPlaylist.txt"
-requestsFilename = dataFolder+"\\KaraokeManager.musicRequests.txt"
-backgroundMusicFilename = dataFolder+"\\KaraokeManager.backgroundMusic.txt"
+# Path to the current music requests file
+requestsFilename = appDataFolder+"\\KaraokeManager.musicRequests.txt"
+# Path to the background music list (list of paths of files that match the BackgroundMusicPlaylist entries)
+backgroundMusicFilename = appDataFolder+"\\KaraokeManager.backgroundMusic.txt"
+# Name of file that we will write to when we find malformed filenames.
 filenameErrorsFilename = "BadFilenames.txt"
+# Name of file that we will write to when we find BackgroundMusicPlaylist entries that do not correspond
+# to a known music file.
 missingPlaylistEntriesFilename = "MissingPlaylistEntries.txt"
+# Name of file that we will write to when we find possible duplicates of music files.
 musicDuplicatesFilename = "MusicDuplicates.txt"
+# Name of file that we will write to when we find possible duplicates of karaoke files.
 karaokeDuplicatesFilename = "KaraokeDuplicates.txt"
+# Name of file that we will write to when we find karaoke files with artist and/or title problems.
 karaokeErrorsFilename = "KaraokeArtistAndTitlesProblems.txt"
+# Name of file that we will write to when we find music files with artist and/or title problems.
 musicErrorsFilename = "MusicArtistAndTitleProblems.txt"
-randomSuggestionsFilename = dataFolder+"\\KaraokeManager.songSuggestion.txt"
-
-filenameErrorCount = 0
+# Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
+# suggestions.
+randomSuggestionsFilename = appDataFolder+"\\KaraokeManager.songSuggestion.txt"
+# Current background music playlist (strings from the BackgroundMusicPlaylist file)
 backgroundMusicPlaylist = set([])
+# List of karaoke files (KaraokeFile objects)
 karaokeFiles = []
+# List of music files (MusicFile objects)
 musicFiles = []
-errors = []
-messages = []
+# Dictionary of karaoke files. Key is artist, value is another dictionary of karaoke files
+# where the key is the song title, and the value is a list of tracks from one or more vendors.
 karaokeDictionary = None
+# Dictionary of music files. Key is artist, value is another dictionary of music files
+# where the key is the song title, and the value is a list of tracks with that title.
 musicDictionary = None
+# Thread that will periodically choose a random karaoke file and write it to the suggestion file.
 suggestorThread = None
+# Flag to stop the suggestion thread.
 stopSuggestions = False
-quit = False
+# List of errors from last command
+errors = []
+# List of informational messages from last command
+messages = []
 
+# Shows onscreen help when the user types "help"
 def showHelp():
 	clear()
 	showHeader()
@@ -80,9 +106,8 @@ def showHelp():
 	except EOFError:
 		pass
 
-
-def cueSong(params):
-	global messages
+# Cues up a song
+def cueSong(params, errors):
 	paramCount = len(params)
 	if paramCount == 0:
 		errors.append("Not enough arguments. Expected song search string.")
@@ -104,16 +129,17 @@ def cueSong(params):
 					except PermissionError:
 						errors.append("Failed to append to background music playlist file.")
 
+# Prints the app header
 def showHeader():
 	print(f'{Fore.GREEN}{Style.BRIGHT}Karaoke Manager v1.0{Style.RESET_ALL} (' +
 		  str(len(karaokeFiles))+"/"+str(len(musicFiles))+" karaoke/music files found)")
 
-
+# Splits a collection into smaller collections of the given size
 def chunks(l, n):
 	for i in range(0, len(l), n):
 		yield l[i:i + n]
 
-
+# Print the current list of singers. Groups them into columns of ten.
 def showSingers():
 	singersWithRequests = state.getSingersDisplayList()
 	if len(singersWithRequests) == 0:
@@ -129,7 +155,8 @@ def showSingers():
 				print(singerColumn.getRowText(row), end='')
 			print()
 
-
+# Print the list of songs for the current singer, or whatever singer
+# has been flagged as the current "active list" singer.
 def showSongs():
 	activeSinger = state.getActiveSongListSinger()
 	if activeSinger is None:
@@ -152,78 +179,81 @@ def showSongs():
 			else:
 				print(songIndex+f": "+song.file.getSongListText())
 
-
+# Checks if the given string is a valid known keyword.
+# User can enter first character of keyword as a shortcut.
 def isKeyword(str, keyword):
 	return str == keyword or str == keyword[0]
 
-
+# Processes the given command.
 def processCommand(command):
-	global quit
-	global errors
 	global state
+	global errors
 	if command.commandType == CommandType.HELP:
 		showHelp()
 	elif command.commandType == CommandType.QUIT:
-		quit = True
+		return True
 	elif command.commandType == CommandType.ADD:
-		state = state.add(command.params, karaokeFiles)
+		state = state.add(command.params, karaokeFiles, errors)
 	elif command.commandType == CommandType.INSERT:
-		state = state.insert(command.params, karaokeFiles)
+		state = state.insert(command.params, karaokeFiles, errors)
 	elif command.commandType == CommandType.MOVE:
-		state = state.move(command.params)
+		state = state.move(command.params, errors)
 	elif command.commandType == CommandType.DELETE:
-		state = state.delete(command.params)
+		state = state.delete(command.params, errors)
 	elif command.commandType == CommandType.LIST:
-		state = state.list(command.params)
+		state = state.list(command.params, errors)
 	elif command.commandType == CommandType.UNDO:
 		state = state.undo()
 	elif command.commandType == CommandType.REDO:
 		state = state.redo()
 	elif command.commandType == CommandType.SCAN:
-		buildSongList(command.params)
+		buildSongLists(command.params)
 	elif command.commandType == CommandType.ZAP:
 		state = state.clear()
 	elif command.commandType == CommandType.NAME:
-		state = state.renameSinger(command.params)
+		state = state.renameSinger(command.params, errors)
 	elif command.commandType == CommandType.PLAY:
-		state = state.play(command.params, True)
+		state = state.play(command.params, True, errors)
 	elif command.commandType == CommandType.FILLER:
-		state = state.play(command.params, False)
+		state = state.play(command.params, False, errors)
 	elif command.commandType == CommandType.KEY:
-		state = state.changeSongKey(command.params)
+		state = state.changeSongKey(command.params, errors)
 	elif command.commandType == CommandType.CUE:
-		cueSong(command.params)
+		cueSong(command.params, errors)
 	elif command.commandType == CommandType.SEARCH:
 		showSongList(command.params[0], karaokeFiles, False)
 	elif command.commandType == CommandType.MUSICSEARCH:
 		showSongList(command.params[0], musicFiles, False)
+	return False
 
+# Asks the user for a command, and parses it
 def getCommand():
+	global errors
 	try:
 		command = input(":")
 	except EOFError:
 		pass
 	command = command.strip()
 	if len(command) > 0:
-		parsedCommand = parseCommand(command)
+		parsedCommand = parseCommand(command, errors)
 		return parsedCommand
 	return None
 
-
+# Shows any errors from the previous command
 def showErrors():
 	global errors
 	for error in errors:
 		print(f'{Fore.RED}{Style.BRIGHT}'+error+f'{Style.RESET_ALL}')
 	errors = []
 
-
+# Shows any messages from the previous command
 def showMessages():
 	global messages
 	for message in messages:
 		print(f'{Fore.YELLOW}{Style.BRIGHT}'+message+f'{Style.RESET_ALL}')
 	messages = []
 
-
+# Parses the name of a karaoke file, returning a KaraokeFile object
 def parseKaraokeFilename(path, filename):
 	filename = filename[0:-4]
 	bits = filename.split(" - ")
@@ -231,7 +261,7 @@ def parseKaraokeFilename(path, filename):
 		return KaraokeFile(path, bits[0].strip(), bits[1].strip(), bits[2].strip())
 	return None
 
-
+# Parses the name of a music file, returning a MusicFile object
 def parseMusicFilename(path, filename):
 	filename = filename[0:-4]
 	bits = filename.split(" - ")
@@ -240,7 +270,7 @@ def parseMusicFilename(path, filename):
 		return MusicFile(path, bits[0].strip(), title)
 	return None
 
-
+# Reads the background music playlist into memory
 def getBackgroundMusicPlaylist():
 	global backgroundMusicPlaylist
 	backgroundMusicPlaylist = set([])
@@ -252,7 +282,8 @@ def getBackgroundMusicPlaylist():
 				if(len(line) > 0):
 					backgroundMusicPlaylist.add(line.lower())
 
-def buildDictionary():
+# Builds the dictionaries of karaoke and music tracks
+def buildDictionaries():
 	global musicDictionary
 	global karaokeDictionary
 	songCount = len(karaokeFiles)
@@ -268,9 +299,10 @@ def buildDictionary():
 		musicDictionary.setdefault(songFile.artist, defaultdict()).setdefault(
 			songFile.title, []).append(songFile)
 
-
+# Scans a list of files for potential duplicates, bad filenames, etc.
 def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
-	getExemptions(dataFilesPath)
+	global errors
+	getExemptions(dataFilesPath, errors)
 	artists = set([])
 	artistList = []
 	artistLowerList = []
@@ -391,6 +423,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 								keys[j]+"\"."
 							songErrors.append(error)
 
+# Checks two strings for similarity.
 def similarity(s1, s2):
 	longer = s1
 	shorter = s2
@@ -402,8 +435,9 @@ def similarity(s1, s2):
 		return 1.0
 	return (longerLength - levenshtein(longer, shorter)) / longerLength
 
-
+# Thread that periodically writes a random karaoke suggestion to a file.
 def randomSongSuggestionGeneratorThread():
+	global errors
 	global stopSuggestions
 	random.seed()
 	counter = 0
@@ -428,7 +462,7 @@ def randomSongSuggestionGeneratorThread():
 			counter -= 1
 		sleep(0.5)
 
-
+# Function to stop the suggestion thread.
 def stopSuggestionThread():
 	global suggestorThread
 	global stopSuggestions
@@ -437,7 +471,7 @@ def stopSuggestionThread():
 		suggestorThread.join()
 	stopSuggestions = False
 
-
+# Function to start the suggestion thread.
 def startSuggestionThread():
 	global suggestorThread
 	stopSuggestionThread()
@@ -446,11 +480,13 @@ def startSuggestionThread():
 	suggestorThread.daemon = True
 	suggestorThread.start()
 
-
+# Helper function for dictionary sorting.
 def getMusicFileKey(file):
 	return file.artist
 
+# Analyse set of files for duplicates, filename errors, etc, and report results.
 def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilename,errFilename,descr):
+	global errors
 	dups=[]
 	errs=[]
 	message="Analyzing "+descr+" files..."
@@ -472,10 +508,14 @@ def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilen
 	except PermissionError:
 		errors.append("Failed to write artist or title errors file.")
 
+# Analyses both the karaoke and music file sets for errors.
 def analyzeFiles(full,songErrors,duplicates):
+	global musicDictionary
+	global karaokeDictionary
 	analyzeFilesPerCategory(full,songErrors,duplicates,musicFiles,musicDictionary,musicDuplicatesFilename,musicErrorsFilename,"music")
 	analyzeFilesPerCategory(full,songErrors,duplicates,karaokeFiles,karaokeDictionary,karaokeDuplicatesFilename,karaokeErrorsFilename,"karaoke")
 
+# Tries to parse a karaoke file, adding it to a collection if successful.
 def scanKaraokeFile(root,file,fileCollection,secondaryFileCollection,filenameErrors):
 	if file.lower().endswith(".kzp"):
 		karaokeFile = parseKaraokeFilename(root+"\\"+file, file)
@@ -484,6 +524,7 @@ def scanKaraokeFile(root,file,fileCollection,secondaryFileCollection,filenameErr
 		else:
 			fileCollection.append(karaokeFile)
 
+# Tries to parse a music file, adding it to a collection if successful.
 def scanMusicFile(root,file,fileCollection,secondaryFileCollection,filenameErrors):
 	fileLower = file.lower()
 	if fileLower.endswith(".mp3") or fileLower.endswith(".m4a"):
@@ -497,6 +538,7 @@ def scanMusicFile(root,file,fileCollection,secondaryFileCollection,filenameError
 		else:
 			fileCollection.append(musicFile)
 
+# Scans the files in one or more folders.
 def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
 	scannedFiles=[]
 	filenameErrors=[]
@@ -510,7 +552,9 @@ def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
 				scanFileFunction(root,file,scannedFiles,secondaryFileCollection,filenameErrors)
 	return scannedFiles,filenameErrors
 
+# Writes a list of strings to a text file.
 def writeTextFile(itemList,path):
+	global errors
 	try:
 		with open(path, mode="w", encoding="utf-8") as f:
 			for item in itemList:
@@ -518,12 +562,13 @@ def writeTextFile(itemList,path):
 	except PermissionError:
 		errors.append("Failed to write "+path+".")
 
-def buildSongList(params):
+# Builds the karaoke and music lists by analysing folder contents.
+def buildSongLists(params):
 	global karaokeDictionary
 	global musicDictionary
 	global karaokeFiles
 	global musicFiles
-	global filenameErrorCount
+	global errors
 	getBackgroundMusicPlaylist()
 	backgroundMusic=[]
 	karaokeFilenameErrors=[]
@@ -545,7 +590,7 @@ def buildSongList(params):
 	# Whatever's left in the background music playlist will be missing files.
 	writeTextFile(backgroundMusicPlaylist,dataFilesPath+"\\"+missingPlaylistEntriesFilename)
 	writeTextFile(backgroundMusic,backgroundMusicFilename)
-	buildDictionary()
+	buildDictionaries()
 	startSuggestionThread()
 	anythingToReport = len(filenameErrors) > 0 or len(backgroundMusicPlaylist)>0
 	duplicates=[]
@@ -566,6 +611,7 @@ def buildSongList(params):
 	musicFiles.sort(key=getMusicFileKey)
 	karaokeFiles.sort(key=getMusicFileKey)
 
+# Parses command line arguments
 def getSettings():
 	global musicFilesPaths
 	global karaokeFilesPaths
@@ -586,6 +632,7 @@ def getSettings():
 						dataFilesPath = secondBit.strip()
 
 
+# Main execution loop
 getSettings()
 clear()
 if(len(dataFilesPath)==0):
@@ -593,13 +640,13 @@ if(len(dataFilesPath)==0):
 else:
 	if not path.isdir(dataFilesPath):
 		makedirs(dataFilesPath)
-	if not path.isdir(dataFolder):
-		makedirs(dataFolder)
+	if not path.isdir(appDataFolder):
+		makedirs(appDataFolder)
 	if path.exists(requestsFilename):
 		remove(requestsFilename)
-	buildSongList([])
-	state = State(dataFolder, karaokeFiles)
-	while not quit:
+	buildSongLists([])
+	state = State(appDataFolder, karaokeFiles)
+	while True:
 		clear()
 		state.save()
 		showHeader()
@@ -614,6 +661,7 @@ else:
 			f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
 		command = getCommand()
 		if not command is None:
-			processCommand(command)
+			if(processCommand(command)):
+				break
 	clear()
 	stopSuggestionThread()

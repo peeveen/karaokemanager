@@ -2,6 +2,7 @@ from MusicFile import MusicFile
 from DisplayFunctions import padOrEllipsize
 from colorama import Fore, Style
 
+# Class describing a karaoke file
 class KaraokeFile(MusicFile):
 	company = None
 
