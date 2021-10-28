@@ -108,6 +108,7 @@ def showHelp():
 
 # Cues up a song
 def cueSong(params, errors):
+	global messages
 	paramCount = len(params)
 	if paramCount == 0:
 		errors.append("Not enough arguments. Expected song search string.")
