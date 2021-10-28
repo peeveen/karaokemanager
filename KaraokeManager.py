@@ -151,9 +151,7 @@ def showSingers():
 			columnsOfSingers.append(SingerColumn(indexStart, singersChunk))
 			indexStart += 10
 		for row in range(0, min(len(singersWithRequests), 10)):
-			for singerColumn in columnsOfSingers:
-				print(singerColumn.getRowText(row), end='')
-			print()
+			print(*map(lambda singerColumn: singerColumn.getRowText(row), columnsOfSingers))
 
 # Print the list of songs for the current singer, or whatever singer
 # has been flagged as the current "active list" singer.
@@ -480,10 +478,6 @@ def startSuggestionThread():
 	suggestorThread.daemon = True
 	suggestorThread.start()
 
-# Helper function for dictionary sorting.
-def getMusicFileKey(file):
-	return file.artist
-
 # Analyse set of files for duplicates, filename errors, etc, and report results.
 def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilename,errFilename,descr):
 	global errors
@@ -608,6 +602,9 @@ def buildSongLists(params):
 			input("Press Enter to continue ...")
 		except EOFError:
 			pass
+	# Helper function for dictionary sorting.
+	def getMusicFileKey(file):
+		return file.artist
 	musicFiles.sort(key=getMusicFileKey)
 	karaokeFiles.sort(key=getMusicFileKey)
 
