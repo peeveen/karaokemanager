@@ -25,8 +25,8 @@ class State:
 	queuePath = None	
 
 	def __init__(self, dataFolder, karaokeFiles):
-		self.statePath = dataFolder+"\\"+stateFilename
-		self.queuePath = dataFolder+"\\"+singersQueueFilename
+		self.statePath = path.join(dataFolder,stateFilename)
+		self.queuePath = path.join(dataFolder,singersQueueFilename)
 		self.load(karaokeFiles)
 
 	# Load the last saved state.

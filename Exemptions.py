@@ -75,7 +75,7 @@ def parseSimilarityExemption(line, errors):
 def getReversalExemptions(dataFilesPath, errors):
 	global reversalExemptions
 	reversalExemptions = []
-	reversalExemptionsPath=f"{dataFilesPath}\\{reversalExemptionsFilename}"
+	reversalExemptionsPath=path.join(dataFilesPath,reversalExemptionsFilename)
 	if path.isfile(reversalExemptionsPath):
 		with open(reversalExemptionsPath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
@@ -87,7 +87,7 @@ def getReversalExemptions(dataFilesPath, errors):
 def getTheExemptions(dataFilesPath):
 	global theExemptions
 	theExemptions = set([])
-	theExemptionsPath=f"{dataFilesPath}\\{theExemptionsFilename}"
+	theExemptionsPath=path.join(dataFilesPath,theExemptionsFilename)
 	if path.isfile(theExemptionsPath):
 		with open(theExemptionsPath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
@@ -99,7 +99,7 @@ def getTheExemptions(dataFilesPath):
 def getSimilarityExemptions(dataFilesPath, errors):
 	global similarityExemptions
 	similarityExemptions = []
-	similarityExemptionsPath=f"{dataFilesPath}\\{similarityExemptionsFilename}"
+	similarityExemptionsPath=path.join(dataFilesPath,similarityExemptionsFilename)
 	if path.isfile(similarityExemptionsPath):
 		with open(similarityExemptionsPath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
@@ -112,7 +112,7 @@ def getSimilarityExemptions(dataFilesPath, errors):
 def getLowerCaseExemptions(dataFilesPath):
 	global lowerCaseExemptions
 	lowerCaseExemptions = []
-	lowerCaseExemptionsPath=f"{dataFilesPath}\\{lowerCaseExemptionsFilename}"
+	lowerCaseExemptionsPath=path.join(dataFilesPath,lowerCaseExemptionsFilename)
 	if path.isfile(lowerCaseExemptionsPath):
 		with open(lowerCaseExemptionsPath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()

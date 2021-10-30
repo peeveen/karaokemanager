@@ -26,13 +26,13 @@ musicFilesPaths = []
 # Path to the folder where data files (music playlist, exemption lists, etc) are stored
 dataFilesPath = None
 # Path to the appdata folder. We will write "temporary" data here, like the persistent state, request queue, etc.
-appDataFolder = getenv("APPDATA")+"\\FullHouse Entertainment\\KaraokeManager"
+appDataFolder = path.join(getenv("APPDATA"),"FullHouse Entertainment","KaraokeManager")
 # Filename of the background music list file (just artist & titles)
 backgroundMusicPlaylistFilename = "BackgroundMusicPlaylist.txt"
 # Path to the current music requests file
-requestsFilename = appDataFolder+"\\KaraokeManager.musicRequests.txt"
+requestsFilename = path.join(appDataFolder,"KaraokeManager.musicRequests.txt")
 # Path to the background music list (list of paths of files that match the BackgroundMusicPlaylist entries)
-backgroundMusicFilename = appDataFolder+"\\KaraokeManager.backgroundMusic.txt"
+backgroundMusicFilename = path.join(appDataFolder,"KaraokeManager.backgroundMusic.txt")
 # Name of file that we will write to when we find malformed filenames.
 filenameErrorsFilename = "BadFilenames.txt"
 # Name of file that we will write to when we find BackgroundMusicPlaylist entries that do not correspond
@@ -48,7 +48,7 @@ karaokeErrorsFilename = "KaraokeArtistAndTitlesProblems.txt"
 musicErrorsFilename = "MusicArtistAndTitleProblems.txt"
 # Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
 # suggestions.
-randomSuggestionsFilename = appDataFolder+"\\KaraokeManager.songSuggestion.txt"
+randomSuggestionsFilename = path.join(appDataFolder,"KaraokeManager.songSuggestion.txt")
 # Current background music playlist (strings from the BackgroundMusicPlaylist file)
 backgroundMusicPlaylist = set([])
 # List of karaoke files (KaraokeFile objects)
@@ -131,7 +131,7 @@ def cueSong(params, errors):
 			if len(params)>1:
 				if params[1]=="a" or params[1]=="add":
 					try:
-						with open(dataFilesPath+"\\"+backgroundMusicPlaylistFilename, mode="a", encoding="utf-8") as f:
+						with open(path.join(dataFilesPath,backgroundMusicPlaylistFilename), mode="a", encoding="utf-8") as f:
 							f.write(f"{song.artist} - {song.title}\n")
 					except PermissionError:
 						errors.append("Failed to append to background music playlist file.")
@@ -271,7 +271,7 @@ def parseMusicFilename(path, filename):
 def getBackgroundMusicPlaylist():
 	global backgroundMusicPlaylist
 	backgroundMusicPlaylist = set([])
-	backgroundMusicFilePath=f"{dataFilesPath}\\{backgroundMusicPlaylistFilename}"
+	backgroundMusicFilePath=path.join(dataFilesPath,backgroundMusicPlaylistFilename)
 	if path.isfile(backgroundMusicFilePath):
 		with open(backgroundMusicFilePath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
@@ -475,13 +475,13 @@ def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilen
 	duplicates.extend(dups)
 	songErrors.extend(errs)
 	try:
-		with open(f"{dataFilesPath}\\{dupFilename}", mode="w", encoding="utf-8") as f:
+		with open(path.join(dataFilesPath,dupFilename), mode="w", encoding="utf-8") as f:
 			for duplicate in dups:
 				f.writelines(duplicate.artist+" - "+duplicate.title+"\n")
 	except PermissionError:
 		errors.append("Failed to write duplicates file.")
 	try:
-		with open(f"{dataFilesPath}\\{errFilename}", mode="w", encoding="utf-8") as f:
+		with open(path.join(dataFilesPath,errFilename), mode="w", encoding="utf-8") as f:
 			for songError in errs:
 				f.writelines(f"{songError}\n")
 	except PermissionError:
@@ -502,7 +502,7 @@ def extensionMatches(filename, exts):
 # Tries to parse a karaoke file, adding it to a collection if successful.
 def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
 	if extensionMatches(file, karaokeFileExtensions):
-		karaokeFile = parseKaraokeFilename(root+"\\"+file, file)
+		karaokeFile = parseKaraokeFilename(path.join(root,file), file)
 		if karaokeFile is None:
 			filenameErrors.append(file)
 		else:
@@ -516,9 +516,9 @@ def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameE
 	if extensionMatches(file, musicFileExtensions):
 		fileWithoutExtension = fileLower[0:-4]
 		if fileWithoutExtension in backgroundMusicPlaylist:
-			secondaryFileCollection.append(root+"\\"+file)
+			secondaryFileCollection.append(path.join(root,file))
 			backgroundMusicPlaylist.remove(fileWithoutExtension)
-		musicFile = parseMusicFilename(root+"\\"+file, file)
+		musicFile = parseMusicFilename(path.join(root,file), file)
 		if musicFile is None:
 			filenameErrors.append(file)
 		else:
@@ -563,9 +563,9 @@ def buildSongLists(params):
 	karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
 	musicFiles, musicFilenameErrors=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
 	filenameErrors = karaokeFilenameErrors+musicFilenameErrors
-	writeTextFile(filenameErrors,dataFilesPath+"\\"+filenameErrorsFilename)
+	writeTextFile(filenameErrors,path.join(dataFilesPath,filenameErrorsFilename))
 	# Whatever's left in the background music playlist will be missing files.
-	writeTextFile(backgroundMusicPlaylist,dataFilesPath+"\\"+missingPlaylistEntriesFilename)
+	writeTextFile(backgroundMusicPlaylist,path.join(dataFilesPath,missingPlaylistEntriesFilename))
 	writeTextFile(backgroundMusic,backgroundMusicFilename)
 	buildDictionaries()
 	startSuggestionThread()
