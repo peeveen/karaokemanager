@@ -13,7 +13,7 @@ from KaraokeFile import KaraokeFile
 from MusicFile import MusicFile
 from Song import Song
 from SingerColumn import SingerColumn
-from SongSelector import selectSong
+from SongSelector import selectSong, showSongList
 from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
 import yaml
 
@@ -622,6 +622,8 @@ def getSettings(configPath):
 	return False
 
 # Main execution loop
+if not path.isdir(appDataFolder):
+	makedirs(appDataFolder)
 clear()
 configPath=defaultConfigFilename
 if len(sys.argv)>1:
@@ -631,8 +633,6 @@ if not getSettings(configPath):
 else:
 	if not path.isdir(dataFilesPath):
 		makedirs(dataFilesPath)
-	if not path.isdir(appDataFolder):
-		makedirs(appDataFolder)
 	if path.exists(requestsFilename):
 		remove(requestsFilename)
 	buildSongLists([])
