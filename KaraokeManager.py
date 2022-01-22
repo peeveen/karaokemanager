@@ -48,7 +48,7 @@ karaokeErrorsFilename = "KaraokeArtistAndTitlesProblems.txt"
 # Name of file that we will write to when we find music files with artist and/or title problems.
 musicErrorsFilename = "MusicArtistAndTitleProblems.txt"
 # Name of file that we will write to with a list of files from the music folders that we ignored
-ignoredMusicFilesFilename = "IgnoredMusicFiles.txt"
+ignoredFilesFilename = "IgnoredFiles.txt"
 # Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
 # suggestions.
 randomSuggestionsFilename = path.join(appDataFolder,"KaraokeManager.songSuggestion.txt")
@@ -489,7 +489,7 @@ def createKaraokeFile(path, groupMap):
 def createMusicFile(path, groupMap):
 	return MusicFile(path,groupMap["artist"],groupMap["title"])
 
-def parseFilename(filePath, filename, patterns, errors, fileBuilder):
+def parseFilename(filePath, filename, patterns, errors, ignored, fileBuilder):
 	nameWithoutExtension, extension = path.splitext(filename)
 	extension=extension.strip('.')
 	validPatterns=list(filter(lambda pattern: pattern.extensionMatches(extension), patterns)) 
@@ -501,18 +501,20 @@ def parseFilename(filePath, filename, patterns, errors, fileBuilder):
 				if not file is None:
 					return file
 		errors.append(filename)
+	else:
+		ignored.append(filename)
 	return None
 
 # Tries to parse a karaoke file, adding it to a collection if successful.
-def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
-	karaokeFile = parseFilename(path.join(root,file), file, karaokeFilePatterns, filenameErrors, createKaraokeFile)
+def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
+	karaokeFile = parseFilename(path.join(root,file), file, karaokeFilePatterns, filenameErrors, ignoredFiles, createKaraokeFile)
 	if not karaokeFile is None:
 		fileCollection.append(karaokeFile)
 
 # Tries to parse a music file, adding it to a collection if successful.
-def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
+def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
 	fileName, fileExt = path.splitext(file)
-	musicFile = parseFilename(path.join(root,file), file, musicFilePatterns, filenameErrors, createMusicFile)
+	musicFile = parseFilename(path.join(root,file), file, musicFilePatterns, filenameErrors, ignoredFiles, createMusicFile)
 	if not musicFile is None:
 		fileWithoutExtension = file[0:-4]
 		if fileWithoutExtension in backgroundMusicPlaylist:
@@ -524,12 +526,13 @@ def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameE
 def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
 	scannedFiles=[]
 	filenameErrors=[]
+	ignoredFiles=[]
 	for filePath in filePaths:
 		for root, _, files in walk(filePath):
 			print(padOrEllipsize(f"Scanning {root}", 119), end="\r")
 			for file in files:
-				scanFileFunction(root,file,scannedFiles,secondaryFileCollection,filenameErrors)
-	return scannedFiles,filenameErrors
+				scanFileFunction(root,file,scannedFiles,secondaryFileCollection,filenameErrors,ignoredFiles)
+	return scannedFiles,filenameErrors,ignoredFiles
 
 # Writes a list of strings to a text file.
 def writeTextFile(itemList,path):
@@ -552,14 +555,17 @@ def buildSongLists(params):
 	backgroundMusic=[]
 	karaokeFilenameErrors=[]
 	musicFilenameErrors=[]
+	ignoredFiles=[]
 	karaokeFiles=[]
 	musicFiles=[]
 	quickanalyze = len(params) > 0 and (params[0] == "quickanalyze" or params[0] == "q")
 	fullanalyze = len(params) > 0 and (params[0] == "analyze" or params[0] == "a")
-	karaokeFiles, karaokeFilenameErrors=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
-	musicFiles, musicFilenameErrors=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
+	karaokeFiles, karaokeFilenameErrors, ignoredKaraokeFiles=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
+	musicFiles, musicFilenameErrors, ignoredMusicFiles=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
 	filenameErrors = karaokeFilenameErrors+musicFilenameErrors
+	ignoredFiles = ignoredKaraokeFiles+ignoredMusicFiles
 	writeTextFile(filenameErrors,path.join(dataFilesPath,filenameErrorsFilename))
+	writeTextFile(ignoredFiles,path.join(dataFilesPath,ignoredFilesFilename))
 	# Whatever's left in the background music playlist will be missing files.
 	writeTextFile(backgroundMusicPlaylist,path.join(dataFilesPath,missingPlaylistEntriesFilename))
 	writeTextFile(backgroundMusic,backgroundMusicFilename)
@@ -575,6 +581,7 @@ def buildSongLists(params):
 		scanCompleteMessage=padOrEllipsize("Scan complete.", 119)
 		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
 		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(filenameErrors)}")
+		print(f"{Fore.GREEN}{Style.BRIGHT}Ignored files:{Style.RESET_ALL} {len(ignoredFiles)}")
 		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(songErrors)}")
 		print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} {len(duplicates)}")
 		print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} {len(backgroundMusicPlaylist)}")
