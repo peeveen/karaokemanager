@@ -12,16 +12,16 @@ karaokePaths:
 musicPaths:
     - "C:\\path\\to\\your\\music\\folder
     - "C:\\optional\\paths\\to\\your\\other\\music\\folders"
-# Files with these extensions will be treated as karaoke files.
-# Filenames must be in the form "Artist - Title - VENDOR.ext".
-# Files that do NOT have any of these extensions will be flagged
-# as problematic.
-karaokeFileExtensions:
-    - zip
-# Files with these extensions will be treated as music files.
-# Filenames must be in the form "Artist - Title.ext".
+# Files with these regex patterns will be treated as karaoke files.
+# Specifying vendorGroup is optional.
+# Any files in the karaoke paths that do not match any of
+# these patterns will be considered problematic.
+# will
+karaokeFilePatterns:
+    - {regex: (.*) - (.*) - (.*).zip, artistGroup: 1, titleGroup: 2, vendorGroup: 3}
+# Files with these regex patterns will be treated as music files.
+# Use [[artist]] and [[title]] as placeholders.
 # Other files may exist in the music folders (album art, etc)
-# without being flagged as problems.
-musicFileExtensions:
-    - mp3
-    - m4a
+# without being flagged as problematic.
+musicFilePatterns:
+    - {regex: (.*) - (.*).[mp3|m4a], artistGroup: 1, titleGroup: 2}
