@@ -51,7 +51,7 @@ karaokeDuplicatesFilename = "KaraokeDuplicates.txt"
 karaokeErrorsFilename = "KaraokeArtistAndTitlesProblems.txt"
 # Name of file that we will write to when we find music files with artist and/or title problems.
 musicErrorsFilename = "MusicArtistAndTitleProblems.txt"
-# Name of file that we will write to with a list of files from the music folders that we ignored
+# Name of file that we will write to with a list of files that we ignored
 ignoredFilesFilename = "IgnoredFiles.txt"
 # Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
 # suggestions.
