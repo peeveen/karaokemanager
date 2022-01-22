@@ -21,11 +21,15 @@ import yaml
 # The current state
 state = None
 # List of paths to karaoke files
-karaokeFilesPaths = []
+karaokePaths = []
 # List of paths to music (MP3/M4A/whatever) files
-musicFilesPaths = []
+musicPaths = []
+# Patterns for karaoke filenames
+karaokePatterns = []
+# Patterns for music filenames
+musicPatterns = []
 # Path to the folder where data files (music playlist, exemption lists, etc) are stored
-dataFilesPath = None
+dataPath = None
 # Path to the appdata folder. We will write "temporary" data here, like the persistent state, request queue, etc.
 appDataFolder = path.join(getenv("APPDATA"),"FullHouse Entertainment","KaraokeManager")
 # Filename of the background music list file (just artist & titles)
@@ -74,10 +78,6 @@ errors = []
 messages = []
 # Default YAML config filename
 defaultConfigFilename='karaokeManagerConfig.yaml'
-# Default recognised karaoke file extensions
-karaokeFilePatterns = []
-# Default recognised music file extensions
-musicFilePatterns = []
 
 # Shows onscreen help when the user types "help"
 def showHelp():
@@ -134,7 +134,7 @@ def cueSong(params, errors):
 			if len(params)>1:
 				if params[1]=="a" or params[1]=="add":
 					try:
-						with open(path.join(dataFilesPath,backgroundMusicPlaylistFilename), mode="a", encoding="utf-8") as f:
+						with open(path.join(dataPath,backgroundMusicPlaylistFilename), mode="a", encoding="utf-8") as f:
 							f.write(f"{song.artist} - {song.title}\n")
 					except PermissionError:
 						errors.append("Failed to append to background music playlist file.")
@@ -257,7 +257,7 @@ def showMessages():
 def getBackgroundMusicPlaylist():
 	global backgroundMusicPlaylist
 	backgroundMusicPlaylist = set([])
-	backgroundMusicFilePath=path.join(dataFilesPath,backgroundMusicPlaylistFilename)
+	backgroundMusicFilePath=path.join(dataPath,backgroundMusicPlaylistFilename)
 	if path.isfile(backgroundMusicFilePath):
 		with open(backgroundMusicFilePath, mode="r", encoding="utf-8") as f:
 			lines = f.readlines()
@@ -286,7 +286,7 @@ def buildDictionaries():
 # Scans a list of files for potential duplicates, bad filenames, etc.
 def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 	global errors
-	getExemptions(dataFilesPath, errors)
+	getExemptions(dataPath, errors)
 	artists = set([])
 	artistList = []
 	artistLowerList = []
@@ -461,13 +461,13 @@ def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilen
 	duplicates.extend(dups)
 	songErrors.extend(errs)
 	try:
-		with open(path.join(dataFilesPath,dupFilename), mode="w", encoding="utf-8") as f:
+		with open(path.join(dataPath,dupFilename), mode="w", encoding="utf-8") as f:
 			for duplicate in dups:
 				f.writelines(duplicate.artist+" - "+duplicate.title+"\n")
 	except PermissionError:
 		errors.append("Failed to write duplicates file.")
 	try:
-		with open(path.join(dataFilesPath,errFilename), mode="w", encoding="utf-8") as f:
+		with open(path.join(dataPath,errFilename), mode="w", encoding="utf-8") as f:
 			for songError in errs:
 				f.writelines(f"{songError}\n")
 	except PermissionError:
@@ -507,14 +507,14 @@ def parseFilename(filePath, filename, patterns, errors, ignored, fileBuilder):
 
 # Tries to parse a karaoke file, adding it to a collection if successful.
 def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
-	karaokeFile = parseFilename(path.join(root,file), file, karaokeFilePatterns, filenameErrors, ignoredFiles, createKaraokeFile)
+	karaokeFile = parseFilename(path.join(root,file), file, karaokePatterns, filenameErrors, ignoredFiles, createKaraokeFile)
 	if not karaokeFile is None:
 		fileCollection.append(karaokeFile)
 
 # Tries to parse a music file, adding it to a collection if successful.
 def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
 	fileName, fileExt = path.splitext(file)
-	musicFile = parseFilename(path.join(root,file), file, musicFilePatterns, filenameErrors, ignoredFiles, createMusicFile)
+	musicFile = parseFilename(path.join(root,file), file, musicPatterns, filenameErrors, ignoredFiles, createMusicFile)
 	if not musicFile is None:
 		fileWithoutExtension = file[0:-4]
 		if fileWithoutExtension in backgroundMusicPlaylist:
@@ -560,14 +560,14 @@ def buildSongLists(params):
 	musicFiles=[]
 	quickanalyze = len(params) > 0 and (params[0] == "quickanalyze" or params[0] == "q")
 	fullanalyze = len(params) > 0 and (params[0] == "analyze" or params[0] == "a")
-	karaokeFiles, karaokeFilenameErrors, ignoredKaraokeFiles=scanFiles(karaokeFilesPaths,scanKaraokeFile,None)
-	musicFiles, musicFilenameErrors, ignoredMusicFiles=scanFiles(musicFilesPaths,scanMusicFile,backgroundMusic)
+	karaokeFiles, karaokeFilenameErrors, ignoredKaraokeFiles=scanFiles(karaokePaths,scanKaraokeFile,None)
+	musicFiles, musicFilenameErrors, ignoredMusicFiles=scanFiles(musicPaths,scanMusicFile,backgroundMusic)
 	filenameErrors = karaokeFilenameErrors+musicFilenameErrors
 	ignoredFiles = ignoredKaraokeFiles+ignoredMusicFiles
-	writeTextFile(filenameErrors,path.join(dataFilesPath,filenameErrorsFilename))
-	writeTextFile(ignoredFiles,path.join(dataFilesPath,ignoredFilesFilename))
+	writeTextFile(filenameErrors,path.join(dataPath,filenameErrorsFilename))
+	writeTextFile(ignoredFiles,path.join(dataPath,ignoredFilesFilename))
 	# Whatever's left in the background music playlist will be missing files.
-	writeTextFile(backgroundMusicPlaylist,path.join(dataFilesPath,missingPlaylistEntriesFilename))
+	writeTextFile(backgroundMusicPlaylist,path.join(dataPath,missingPlaylistEntriesFilename))
 	writeTextFile(backgroundMusic,backgroundMusicFilename)
 	buildDictionaries()
 	startSuggestionThread()
@@ -595,34 +595,37 @@ def buildSongLists(params):
 	musicFiles.sort(key=getMusicFileKey)
 	karaokeFiles.sort(key=getMusicFileKey)
 
+def getPathsAndPatterns(config,section):
+	paths=[]
+	patterns=[]
+	if section in config:
+		sectionConfig=config[section]
+		if "paths" in sectionConfig:
+			paths=sectionConfig["paths"]
+		if "patterns" in sectionConfig:
+			unparsedPatterns=sectionConfig["patterns"]
+			patterns=list(map(lambda unparsedPattern: parseFilePattern(unparsedPattern), unparsedPatterns))
+	return paths,patterns
+
 # Parses command line arguments
 def getSettings(configPath):
-	global musicFilesPaths
-	global karaokeFilesPaths
-	global dataFilesPath
-	global karaokeFilePatterns
-	global musicFilePatterns
+	global musicPaths
+	global karaokePaths
+	global dataPath
+	global karaokePatterns
+	global musicPatterns
 	if path.isfile(configPath):
 		config = yaml.safe_load(open(configPath))
 		if not config is None:
 			dataFilesPath=config.get('dataPath').strip()
-			_karaokeFilesPaths=config.get('karaokePaths')
-			if not _karaokeFilesPaths is None:
-				karaokeFilesPaths=_karaokeFilesPaths
-			_musicFilesPaths=config.get('musicPaths')
-			if not _musicFilesPaths is None:
-				musicFilesPaths=_musicFilesPaths
-			_karaokeFilePatterns=config.get('karaokeFilePatterns')
-			if not _karaokeFilePatterns is None:
-				karaokeFilePatterns=_karaokeFilePatterns
-			_musicFilePatterns=config.get('musicFilePatterns')
-			if not _musicFilePatterns is None:
-				musicFilePatterns=_musicFilePatterns
-			karaokeFilePatterns=list(map(lambda pattern: parseFilePattern(pattern), _karaokeFilePatterns))
-			musicFilePatterns=list(map(lambda pattern: parseFilePattern(pattern), _musicFilePatterns))
+			karaokePaths,karaokePatterns=getPathsAndPatterns(config,"karaoke")
+			musicPaths,musicPatterns=getPathsAndPatterns(config,"music")
 			if(len(dataFilesPath)>0):
-				return True
-	return False
+				dataPath=dataFilesPath
+				return
+			raise Exception("'dataPath' (from YAML) must not be an empty string.")
+		raise Exception("Failed to parse YAML configuration.")
+	raise Exception("{defaultConfigFilename} not found.")
 
 # Main execution loop
 if not path.isdir(appDataFolder):
@@ -631,31 +634,34 @@ clear()
 configPath=defaultConfigFilename
 if len(sys.argv)>1:
 	configPath=sys.argv[1]
-if not getSettings(configPath):
-	print(f"{Fore.RED}Could not read the required options from the \"{configPath}\" config file.{Style.RESET_ALL}\nMinimum required value is \"dataPath\".")
-else:
-	if not path.isdir(dataFilesPath):
-		makedirs(dataFilesPath)
-	if path.exists(requestsFilename):
-		remove(requestsFilename)
-	buildSongLists([])
-	state = State(appDataFolder, karaokeFiles)
-	while True:
-		clear()
-		state.save()
-		showHeader()
-		print()
-		showSingers()
-		print()
-		showSongs()
-		print()
-		showMessages()
-		showErrors()
-		print(
-			f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
-		command = getCommand()
-		if not command is None:
-			if(processCommand(command)):
-				break
+try:
+	getSettings(configPath)
+except Exception as e:
+	print(f"{Fore.RED}Error parsing the configuration file: {e}{Style.RESET_ALL}")
+	exit(1)
+
+if not path.isdir(dataPath):
+	makedirs(dataPath)
+if path.exists(requestsFilename):
+	remove(requestsFilename)
+buildSongLists([])
+state = State(appDataFolder, karaokeFiles)
+while True:
 	clear()
-	stopSuggestionThread()
+	state.save()
+	showHeader()
+	print()
+	showSingers()
+	print()
+	showSongs()
+	print()
+	showMessages()
+	showErrors()
+	print(
+		f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
+	command = getCommand()
+	if not command is None:
+		if(processCommand(command)):
+			break
+clear()
+stopSuggestionThread()

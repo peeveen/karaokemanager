@@ -2,37 +2,39 @@
 # exemption files, and suchlike. Also, lists of problematic files will be written
 # here after scans.
 dataPath: "C:\\your\\data\\path\\here"
-# Where you store your karaoke files.
-# List as many paths as you like.
-karaokePaths:
-  - "C:\\path\\to\\your\\karaoke\\folder"
-  - "C:\\optional\\paths\\to\\your\\other\\karaoke\\folders"
-# Where you store your music files.
-# List as many paths as you like.
-musicPaths:
-  - "C:\\path\\to\\your\\music\\folder"
-  - "C:\\optional\\paths\\to\\your\\other\\music\\folders"
-# Files that match this criteria will be treated as karaoke files.
-# There must be an "artist" and "title" group, and optionally a
-# "vendor" group. You can put in other names to match filler groups.
-# Files that do not match any of the extensions will be ignored.
-# Files that do match any of the extensions must match at least one of the
-# associated regular expression, or the file will be considered problematic.
-karaokeFilePatterns:
-  - {
-      validExtensions: [zip],
-      regExp: "(.*) - (.*) - (.*)",
-      groupNames: [artist, title, vendor],
-    }
-# Files with these regex patterns will be treated as music files.
-# There must be an "artist" and "title" group. You can put in other names
-# to match filler groups.
-# Files that do not match any of the extensions will be ignored.
-# Files that do match any of the extensions must match at least one of the
-# associated regular expression, or the file will be considered problematic.
-musicFilePatterns:
-  - {
-      validExtensions: [mp3, m4a],
-      regExp: "(.*) - (.*)",
-      groupNames: [artist, title],
-    }
+karaoke:
+  # Where you store your karaoke files.
+  # List as many paths as you like.
+  paths:
+    - "C:\\path\\to\\your\\karaoke\\folder"
+    - "C:\\optional\\paths\\to\\your\\other\\karaoke\\folders"
+  # Files that match this criteria will be treated as karaoke files.
+  # There must be an "artist" and "title" group, and optionally a
+  # "vendor" group. You can put in other names to match filler groups.
+  # Files that do not match any of the extensions will be ignored.
+  # Files that do match any of the extensions must match at least one of the
+  # associated regular expression, or the file will be considered problematic.
+  patterns:
+    - {
+        extensions: [zip],
+        regExp: "(.*) - (.*) - (.*)",
+        groupNames: [artist, title, vendor],
+      }
+music:
+  # Where you store your music files.
+  # List as many paths as you like.
+  paths:
+    - "C:\\path\\to\\your\\music\\folder"
+    - "C:\\optional\\paths\\to\\your\\other\\music\\folders"
+  # Files with these regex patterns will be treated as music files.
+  # There must be an "artist" and "title" group. You can put in other names
+  # to match filler groups.
+  # Files that do not match any of the extensions will be ignored.
+  # Files that do match any of the extensions must match at least one of the
+  # associated regular expression, or the file will be considered problematic.
+  patterns:
+    - {
+        extensions: [mp3, m4a],
+        regExp: "(.*) - (.*)",
+        groupNames: [artist, title],
+      }

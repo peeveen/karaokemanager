@@ -26,19 +26,13 @@ class FilePattern:
 		return groupMap
 
 def parseFilePattern(patternConfig):
-	if not "regExp" in patternConfig:
-		raise Exception("No regExp defined for pattern.")
-	if not "groupNames" in patternConfig:
-		raise Exception("No groupNames defined for pattern.")
-	if not "validExtensions" in patternConfig:
-		raise Exception("No validExtensions defined for pattern.")
 	regExp=patternConfig["regExp"]
 	groupNames=patternConfig["groupNames"]
-	validExtensions=patternConfig["validExtensions"]
+	validExtensions=patternConfig["extensions"]
 	if(regExp is None or regExp==""):
 		raise Exception("No regExp defined for pattern.")
 	if(groupNames is None or len(groupNames)==0):
 		raise Exception("No groupNames defined for pattern.")
 	if(validExtensions is None or len(validExtensions)==0):
-		raise Exception("No validExtensions defined for pattern.")
+		raise Exception("No extensions defined for pattern.")
 	return FilePattern(validExtensions,regExp,groupNames)
