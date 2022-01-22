@@ -18,36 +18,25 @@ lowerCaseExemptionsFilename = "LowerCaseExemptions.txt"
 # List them in this file to get rid of them, with both values separated by a tab.
 similarityExemptionsFilename = "SimilarityExemptions.txt"
 
-# Contents of the similarity exemptions file (a list of SimilarityExemption objects)
+# Contents of the similarity exemptions file (a list of TwoPartExemption objects)
 similarityExemptions = []
 # Contents of the lower case exemptions file (a list of strings)
 lowerCaseExemptions = []
-# Contents of the reversal exemptions file (a list of ReversalExemption objects)
+# Contents of the reversal exemptions file (a list of TwoPartExemption objects)
 reversalExemptions = []
 # Contents of the "the" exemptions file (a list of strings)
 theExemptions=set([])
 
-class ReversalExemption:
-	artist1 = None
-	artist2 = None
+class TwoPartExemption:
+	part1 = None
+	part2 = None
 
-	def __init__(self, artist1, artist2):
-		self.artist1 = artist1
-		self.artist2 = artist2
+	def __init__(self, part1, part2):
+		self.part1 = part1
+		self.part2 = part2
 
-	def matches(self, artist1, artist2):
-		return (self.artist1 == artist1 and self.artist2 == artist2) or (self.artist1 == artist2 and self.artist2 == artist1)
-
-class SimilarityExemption:
-	title1 = None
-	title2 = None
-
-	def __init__(self, title1, title2):
-		self.title1 = title1
-		self.title2 = title2
-
-	def matches(self, title1, title2):
-		return (self.title1 == title1 and self.title2 == title2) or (self.title1 == title2 and self.title2 == title1)
+	def matches(self, part1, part2):
+		return (self.part1 == part1 and self.part2 == part2) or (self.part1 == part2 and self.part2 == part1)
 
 def parseTwoPartExemption(line, errors, creatorFunc, exemptionType):
 	line = line.strip()
@@ -59,20 +48,17 @@ def parseTwoPartExemption(line, errors, creatorFunc, exemptionType):
 			errors.append(f"Could not parse {exemptionType} exemption: {line}")
 			return None
 
-def createReversalExemption(part1,part2):
-	return ReversalExemption(part1,part2)
-
-def createSimilarityExemption(part1,part2):
-	return SimilarityExemption(part1,part2)
+def createTwoPartExemption(part1,part2):
+	return TwoPartExemption(part1,part2)
 
 def parseReversalExemption(line, errors):
-	return parseTwoPartExemption(line,errors, createReversalExemption, "reversal")
+	return parseTwoPartExemption(line,errors, createTwoPartExemption, "reversal")
+
+def parseSimilarityExemption(line, errors):
+	return parseTwoPartExemption(line,errors, createTwoPartExemption, "similarity")
 
 def parseSimpleExemption(line,errors):
 	return line.strip()
-
-def parseSimilarityExemption(line, errors):
-	return parseTwoPartExemption(line,errors, createSimilarityExemption, "similarity")
 
 def readLinesFromDataTextFile(dataFilesPath,filename):
 	fullPath=path.join(dataFilesPath,filename)
