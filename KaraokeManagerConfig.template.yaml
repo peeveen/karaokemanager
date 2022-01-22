@@ -12,21 +12,27 @@ karaokePaths:
 musicPaths:
   - "C:\\path\\to\\your\\music\\folder"
   - "C:\\optional\\paths\\to\\your\\other\\music\\folders"
-# Files with these regex patterns will be treated as karaoke files.
-# Specifying vendorGroup is optional.
-# Any files in the karaoke paths that do not match any of
-# these patterns will be considered problematic.
-# will
+# Files that match this criteria will be treated as karaoke files.
+# There must be an "artist" and "title" group, and optionally a
+# "vendor" group. You can put in other names to match filler groups.
+# Files that do not match any of the extensions will be ignored.
+# Files that do match any of the extensions must match at least one of the
+# associated regular expression, or the file will be considered problematic.
 karaokeFilePatterns:
   - {
-      regex: "(.*) - (.*) - (.*).zip",
-      artistGroup: 1,
-      titleGroup: 2,
-      vendorGroup: 3,
+      validExtensions: [zip],
+      regExp: "(.*) - (.*) - (.*)",
+      groupNames: [artist, title, vendor],
     }
 # Files with these regex patterns will be treated as music files.
-# Use [[artist]] and [[title]] as placeholders.
-# Other files may exist in the music folders (album art, etc)
-# without being flagged as problematic.
+# There must be an "artist" and "title" group. You can put in other names
+# to match filler groups.
+# Files that do not match any of the extensions will be ignored.
+# Files that do match any of the extensions must match at least one of the
+# associated regular expression, or the file will be considered problematic.
 musicFilePatterns:
-  - { regex: "(.*) - (.*).[mp3|m4a]", artistGroup: 1, titleGroup: 2 }
+  - {
+      validExtensions: [mp3, m4a],
+      regExp: "(.*) - (.*)",
+      groupNames: [artist, title],
+    }

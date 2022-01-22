@@ -1,5 +1,7 @@
 .vs/**
 __pycache__/**
 __debug
+__debug/**
 .vscode
+.vscode/**
 KaraokeManagerConfig.yaml

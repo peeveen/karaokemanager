@@ -12,6 +12,7 @@ from Exemptions import getExemptions, isExemptFromLowerCaseCheck, isExemptFromRe
 from KaraokeFile import KaraokeFile
 from MusicFile import MusicFile
 from Song import Song
+from FilePattern import FilePattern, parseFilePattern
 from SingerColumn import SingerColumn
 from SongSelector import selectSong, showSongList
 from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
@@ -46,6 +47,8 @@ karaokeDuplicatesFilename = "KaraokeDuplicates.txt"
 karaokeErrorsFilename = "KaraokeArtistAndTitlesProblems.txt"
 # Name of file that we will write to when we find music files with artist and/or title problems.
 musicErrorsFilename = "MusicArtistAndTitleProblems.txt"
+# Name of file that we will write to with a list of files from the music folders that we ignored
+ignoredMusicFilesFilename = "IgnoredMusicFiles.txt"
 # Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
 # suggestions.
 randomSuggestionsFilename = path.join(appDataFolder,"KaraokeManager.songSuggestion.txt")
@@ -72,9 +75,9 @@ messages = []
 # Default YAML config filename
 defaultConfigFilename='karaokeManagerConfig.yaml'
 # Default recognised karaoke file extensions
-karaokeFileExtensions=["zip"]
+karaokeFilePatterns = []
 # Default recognised music file extensions
-musicFileExtensions=["mp3", "m4a"]
+musicFilePatterns = []
 
 # Shows onscreen help when the user types "help"
 def showHelp():
@@ -249,23 +252,6 @@ def showMessages():
 	for message in messages:
 		print(f'{Fore.YELLOW}{Style.BRIGHT}{message}{Style.RESET_ALL}')
 	messages = []
-
-# Parses the name of a karaoke file, returning a KaraokeFile object
-def parseKaraokeFilename(path, filename):
-	filename = filename[0:-4]
-	bits = filename.split(" - ")
-	if len(bits) == 3:
-		return KaraokeFile(path, bits[0].strip(), bits[1].strip(), bits[2].strip())
-	return None
-
-# Parses the name of a music file, returning a MusicFile object
-def parseMusicFilename(path, filename):
-	filename = filename[0:-4]
-	bits = filename.split(" - ")
-	if len(bits) >= 2:
-		title = " - ".join(bits[1:])
-		return MusicFile(path, bits[0].strip(), title)
-	return None
 
 # Reads the background music playlist into memory
 def getBackgroundMusicPlaylist():
@@ -494,35 +480,45 @@ def analyzeFiles(full,songErrors,duplicates):
 	analyzeFilesPerCategory(full,songErrors,duplicates,musicFiles,musicDictionary,musicDuplicatesFilename,musicErrorsFilename,"music")
 	analyzeFilesPerCategory(full,songErrors,duplicates,karaokeFiles,karaokeDictionary,karaokeDuplicatesFilename,karaokeErrorsFilename,"karaoke")
 
-def extensionMatches(filename, exts):
-	filename=filename.lower()
-	# The replace is in case the user supplied the dot already in the config file.
-	return any(list(map(lambda ext: filename.endswith(f".{ext}".replace("..", ".")), exts)))
+def createKaraokeFile(path, groupMap):
+	vendor=groupMap["vendor"]
+	if vendor is None:
+		vendor="UNKNOWN"
+	return KaraokeFile(path,groupMap["artist"],groupMap["title"],vendor)
+
+def createMusicFile(path, groupMap):
+	return MusicFile(path,groupMap["artist"],groupMap["title"])
+
+def parseFilename(filePath, filename, patterns, errors, fileBuilder):
+	nameWithoutExtension, extension = path.splitext(filename)
+	extension=extension.strip('.')
+	validPatterns=list(filter(lambda pattern: pattern.extensionMatches(extension), patterns)) 
+	if len(validPatterns)>0:
+		for pattern in validPatterns:
+			groupMap = pattern.parseFilename(nameWithoutExtension)
+			if len(groupMap)!=0:
+				file=fileBuilder(filePath, groupMap)
+				if not file is None:
+					return file
+		errors.append(filename)
+	return None
 
 # Tries to parse a karaoke file, adding it to a collection if successful.
 def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
-	if extensionMatches(file, karaokeFileExtensions):
-		karaokeFile = parseKaraokeFilename(path.join(root,file), file)
-		if karaokeFile is None:
-			filenameErrors.append(file)
-		else:
-			fileCollection.append(karaokeFile)
-	else:
-		filenameErrors.append(file)
+	karaokeFile = parseFilename(path.join(root,file), file, karaokeFilePatterns, filenameErrors, createKaraokeFile)
+	if not karaokeFile is None:
+		fileCollection.append(karaokeFile)
 
 # Tries to parse a music file, adding it to a collection if successful.
 def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameErrors):
-	fileLower = file.lower()
-	if extensionMatches(file, musicFileExtensions):
-		fileWithoutExtension = fileLower[0:-4]
+	fileName, fileExt = path.splitext(file)
+	musicFile = parseFilename(path.join(root,file), file, musicFilePatterns, filenameErrors, createMusicFile)
+	if not musicFile is None:
+		fileWithoutExtension = file[0:-4]
 		if fileWithoutExtension in backgroundMusicPlaylist:
 			secondaryFileCollection.append(path.join(root,file))
 			backgroundMusicPlaylist.remove(fileWithoutExtension)
-		musicFile = parseMusicFilename(path.join(root,file), file)
-		if musicFile is None:
-			filenameErrors.append(file)
-		else:
-			fileCollection.append(musicFile)
+		fileCollection.append(musicFile)
 
 # Scans the files in one or more folders.
 def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
@@ -597,8 +593,8 @@ def getSettings(configPath):
 	global musicFilesPaths
 	global karaokeFilesPaths
 	global dataFilesPath
-	global karaokeFileExtensions
-	global musicFileExtensions
+	global karaokeFilePatterns
+	global musicFilePatterns
 	if path.isfile(configPath):
 		config = yaml.safe_load(open(configPath))
 		if not config is None:
@@ -609,14 +605,14 @@ def getSettings(configPath):
 			_musicFilesPaths=config.get('musicPaths')
 			if not _musicFilesPaths is None:
 				musicFilesPaths=_musicFilesPaths
-			_karaokeFileExtensions=config.get('karaokeFileExtensions')
-			if not _karaokeFileExtensions is None:
-				karaokeFileExtensions=_karaokeFileExtensions
-			_musicFileExtension=config.get('musicFileExtensions')
-			if not _musicFileExtension is None:
-				musicFileExtensions=_musicFileExtension
-			karaokeFileExtensions=list(map(lambda ext: ext.lower(), karaokeFileExtensions))
-			musicFileExtensions=list(map(lambda ext: ext.lower(), musicFileExtensions))
+			_karaokeFilePatterns=config.get('karaokeFilePatterns')
+			if not _karaokeFilePatterns is None:
+				karaokeFilePatterns=_karaokeFilePatterns
+			_musicFilePatterns=config.get('musicFilePatterns')
+			if not _musicFilePatterns is None:
+				musicFilePatterns=_musicFilePatterns
+			karaokeFilePatterns=list(map(lambda pattern: parseFilePattern(pattern), _karaokeFilePatterns))
+			musicFilePatterns=list(map(lambda pattern: parseFilePattern(pattern), _musicFilePatterns))
 			if(len(dataFilesPath)>0):
 				return True
 	return False
