@@ -203,9 +203,9 @@ def processCommand(command):
 	elif command.commandType == CommandType.LIST:
 		state = state.list(command.params, errors)
 	elif command.commandType == CommandType.UNDO:
-		state = state.undo()
+		state = state.undo(errors)
 	elif command.commandType == CommandType.REDO:
-		state = state.redo()
+		state = state.redo(errors)
 	elif command.commandType == CommandType.SCAN:
 		buildSongLists(command.params)
 	elif command.commandType == CommandType.ZAP:
@@ -648,7 +648,7 @@ buildSongLists([])
 state = State(appDataFolder, karaokeFiles)
 while True:
 	clear()
-	state.save()
+	state.save(errors)
 	showHeader()
 	print()
 	showSingers()
