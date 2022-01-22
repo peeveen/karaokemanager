@@ -55,7 +55,7 @@ class State:
 				if not currentSinger is None:
 					self.singers.append(currentSinger)
 
-	def save(self):
+	def save(self, errors):
 		try:
 			with open(self.statePath, mode="w", encoding="utf-8") as f:
 				for singer in self.singers:
@@ -259,13 +259,13 @@ class State:
 			return self.deleteSongFromSinger(params[0], params[1], errors)
 		return self
 
-	def undo(self):
+	def undo(self, errors):
 		if self.prevState is None:
 			errors.append("No undo history available.")
 		else:
 			return self.prevState
 
-	def redo(self):
+	def redo(self, errors):
 		if self.nextState is None:
 			errors.append("No redo history available.")
 		else:
