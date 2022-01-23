@@ -19,7 +19,7 @@ class WinampDriver(Driver):
 				errors.append("No pitchUp hotkey defined for Winamp driver.")
 			else:
 				try:
-					self.pitchUpHotkey=Hotkey(pitchUpConfig, errors)
+					self.pitchUpHotkey=Hotkey(pitchUpConfig)
 				except Exception as e:
 					errors.append(e)
 			pitchDownConfig=hotkeysConfig.get("pitchDown")
@@ -27,7 +27,7 @@ class WinampDriver(Driver):
 				errors.append("No pitchReset hotkey defined for Winamp driver.")
 			else:
 				try:
-					self.pitchDownHotkey=Hotkey(pitchDownConfig, errors)
+					self.pitchDownHotkey=Hotkey(pitchDownConfig)
 				except Exception as e:
 					errors.append(e)
 			pitchResetConfig=hotkeysConfig.get("pitchReset")
@@ -35,7 +35,7 @@ class WinampDriver(Driver):
 				errors.append("No pitchReset hotkey defined for Winamp driver.")
 			else:
 				try:
-					self.pitchResetHotkey=Hotkey(pitchResetConfig, errors)
+					self.pitchResetHotkey=Hotkey(pitchResetConfig)
 				except Exception as e:
 					errors.append(e)
 

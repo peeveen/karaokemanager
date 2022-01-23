@@ -4,11 +4,12 @@ from ctypes import wintypes
 from enum import IntEnum
 
 class Hotkey:
-	def __init__(self, config, errors):
+	def __init__(self, config):
 		modifiers=config.get("modifiers")
 		if modifiers is None:
-			raise Exception("No modifiers defined for hotkey")
-		self.modifiers=set(map(lambda mod: parseModifier(mod), modifiers))
+			self.modifiers=[]
+		else:
+			self.modifiers=set(map(lambda mod: parseModifier(mod), modifiers))
 		key=config.get("key")
 		self.key=getKeyCode(key)
 
