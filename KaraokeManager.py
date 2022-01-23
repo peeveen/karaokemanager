@@ -614,12 +614,18 @@ def getSettings(configPath):
 	global dataPath
 	global karaokePatterns
 	global musicPatterns
+	global backgroundMusicPlaylistFilename
 	if path.isfile(configPath):
 		config = yaml.safe_load(open(configPath))
 		if not config is None:
 			dataFilesPath=config.get('dataPath').strip()
 			karaokePaths,karaokePatterns=getPathsAndPatterns(config,"karaoke")
 			musicPaths,musicPatterns=getPathsAndPatterns(config,"music")
+			musicConfig=config.get("music")
+			if not musicConfig is None:
+				backgroundMusicFilename=musicConfig.get("backgroundMusicPlaylistFilename")
+				if not backgroundMusicFilename is None:
+					backgroundMusicPlaylistFilename=backgroundMusicFilename
 			if(len(dataFilesPath)>0):
 				dataPath=dataFilesPath
 				return config
