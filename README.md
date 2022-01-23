@@ -14,8 +14,7 @@ Command-line karaoke session management utility, driving Winamp.
 - Singers maintain their position in the queue, even if they currently have no songs cued up.
 - Heavy OCD rating.
   - Enforces correctly formatted karaoke and music filenames.
-  - Can analyze your library for duplicates, bad capitalization, similar-looking titles, missing "The" prefixes, etc.
-  - List of analysis exemptions can be created.
+  - Can analyze your library for duplicates, bad capitalization, similar-looking titles, missing "The" prefixes, etc (lists of analysis exemptions can be created).
 - Writes the current list of singers to a file for the [SingersQueue plugin](https://github.com/peeveen/gen_singersQueue) to display.
 - Not just karaoke! There are also commands for adding non-karaoke music tracks to a playlist, for the [AutoDJ plugin](https://github.com/peeveen/gen_autoDJ) to play in-between singers.
 
