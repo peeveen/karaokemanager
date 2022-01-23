@@ -23,7 +23,7 @@ Command-line karaoke session management utility, driving Winamp.
 
 * Copy the YAML template to "KaraokeManagerConfig.yaml", and modify it with your own settings.
 * Run `py KaraokeManager.py`
-* If you hate the YAML config filename, rename it, and provide it as an argument to the program, e.g. `py KaraokeManager.py renamed_file.yml`
+* If you hate the [YAML config filename](KaraokeManagerConfig.template.yaml), rename it, and provide it as an argument to the program, e.g. `py KaraokeManager.py renamed_file.yml`
 
 ### TODO
 
