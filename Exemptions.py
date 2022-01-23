@@ -18,108 +18,76 @@ lowerCaseExemptionsFilename = "LowerCaseExemptions.txt"
 # List them in this file to get rid of them, with both values separated by a tab.
 similarityExemptionsFilename = "SimilarityExemptions.txt"
 
-# Contents of the similarity exemptions file (a list of SimilarityExemption objects)
+# Contents of the similarity exemptions file (a list of TwoPartExemption objects)
 similarityExemptions = []
 # Contents of the lower case exemptions file (a list of strings)
 lowerCaseExemptions = []
-# Contents of the reversal exemptions file (a list of ReversalExemption objects)
+# Contents of the reversal exemptions file (a list of TwoPartExemption objects)
 reversalExemptions = []
 # Contents of the "the" exemptions file (a list of strings)
 theExemptions=set([])
 
-class ReversalExemption:
-	artist1 = None
-	artist2 = None
+class TwoPartExemption:
+	part1 = None
+	part2 = None
 
-	def __init__(self, artist1, artist2):
-		self.artist1 = artist1
-		self.artist2 = artist2
+	def __init__(self, part1, part2):
+		self.part1 = part1
+		self.part2 = part2
 
-	def matches(self, artist1, artist2):
-		return (self.artist1 == artist1 and self.artist2 == artist2) or (self.artist1 == artist2 and self.artist2 == artist1)
+	def matches(self, part1, part2):
+		return (self.part1 == part1 and self.part2 == part2) or (self.part1 == part2 and self.part2 == part1)
 
+def parseTwoPartExemption(line, errors, creatorFunc, exemptionType):
+	line = line.strip()
+	if len(line) > 0:
+		bits = line.split("\t")
+		if len(bits) == 2:
+			return creatorFunc(bits[0], bits[1])
+		else:
+			errors.append(f"Could not parse {exemptionType} exemption: {line}")
+			return None
 
-class SimilarityExemption:
-	title1 = None
-	title2 = None
-
-	def __init__(self, title1, title2):
-		self.title1 = title1
-		self.title2 = title2
-
-	def matches(self, title1, title2):
-		return (self.title1 == title1 and self.title2 == title2) or (self.title1 == title2 and self.title2 == title1)
+def createTwoPartExemption(part1,part2):
+	return TwoPartExemption(part1,part2)
 
 def parseReversalExemption(line, errors):
-	line = line.strip()
-	if len(line) > 0:
-		bits = line.split("\t")
-		if len(bits) == 2:
-			return ReversalExemption(bits[0], bits[1])
-		else:
-			errors.append(f"Could not parse reversal exemption: {line}")
-			return None
-
+	return parseTwoPartExemption(line,errors, createTwoPartExemption, "reversal")
 
 def parseSimilarityExemption(line, errors):
-	line = line.strip()
-	if len(line) > 0:
-		bits = line.split("\t")
-		if len(bits) == 2:
-			return SimilarityExemption(bits[0], bits[1])
-		else:
-			errors.append(f"Could not parse similarity exemption: {line}")
-			return None
+	return parseTwoPartExemption(line,errors, createTwoPartExemption, "similarity")
 
+def parseSimpleExemption(line,errors):
+	return line.strip()
+
+def readLinesFromDataTextFile(dataFilesPath,filename):
+	fullPath=path.join(dataFilesPath,filename)
+	if path.isfile(fullPath):
+		with open(fullPath, mode="r", encoding="utf-8") as f:
+			return f.readlines()
+
+def getItemsFromDataTextFile(dataFilesPath,filename,parserFunction,errors):
+	lines=readLinesFromDataTextFile(dataFilesPath,filename)
+	items=list(map(lambda line: parserFunction(line,errors),lines))
+	items=list(filter(lambda item: not item is None, items))
+	return items
 
 def getReversalExemptions(dataFilesPath, errors):
 	global reversalExemptions
-	reversalExemptions = []
-	reversalExemptionsPath=path.join(dataFilesPath,reversalExemptionsFilename)
-	if path.isfile(reversalExemptionsPath):
-		with open(reversalExemptionsPath, mode="r", encoding="utf-8") as f:
-			lines = f.readlines()
-			for line in lines:
-				reversalExemption = parseReversalExemption(line, errors)
-				if not reversalExemption is None:
-					reversalExemptions.append(reversalExemption)
+	reversalExemptions=getItemsFromDataTextFile(dataFilesPath,reversalExemptionsFilename,parseReversalExemption,errors)
 
 def getTheExemptions(dataFilesPath):
 	global theExemptions
-	theExemptions = set([])
-	theExemptionsPath=path.join(dataFilesPath,theExemptionsFilename)
-	if path.isfile(theExemptionsPath):
-		with open(theExemptionsPath, mode="r", encoding="utf-8") as f:
-			lines = f.readlines()
-			for line in lines:
-				theExemption = line.strip()
-				theExemptions.add(theExemption)
-
+	theExemptionsList=getItemsFromDataTextFile(dataFilesPath,reversalExemptionsFilename,parseSimpleExemption,None)
+	theExemptions = set(theExemptionsList)
 
 def getSimilarityExemptions(dataFilesPath, errors):
 	global similarityExemptions
-	similarityExemptions = []
-	similarityExemptionsPath=path.join(dataFilesPath,similarityExemptionsFilename)
-	if path.isfile(similarityExemptionsPath):
-		with open(similarityExemptionsPath, mode="r", encoding="utf-8") as f:
-			lines = f.readlines()
-			for line in lines:
-				similarityExemption = parseSimilarityExemption(line, errors)
-				if not similarityExemption is None:
-					similarityExemptions.append(similarityExemption)
-
+	similarityExemptions=getItemsFromDataTextFile(dataFilesPath,reversalExemptionsFilename,parseSimilarityExemption,errors)
 
 def getLowerCaseExemptions(dataFilesPath):
 	global lowerCaseExemptions
-	lowerCaseExemptions = []
-	lowerCaseExemptionsPath=path.join(dataFilesPath,lowerCaseExemptionsFilename)
-	if path.isfile(lowerCaseExemptionsPath):
-		with open(lowerCaseExemptionsPath, mode="r", encoding="utf-8") as f:
-			lines = f.readlines()
-			for line in lines:
-				lowerCaseExemption = line.strip()
-				lowerCaseExemptions.append(lowerCaseExemption)
-
+	lowerCaseExemptions=getItemsFromDataTextFile(dataFilesPath,reversalExemptionsFilename,parseSimpleExemption,None)
 
 def isExemptFromReversalCheck(artist1, artist2):
 	for reversalExemption in reversalExemptions:
@@ -127,13 +95,11 @@ def isExemptFromReversalCheck(artist1, artist2):
 			return True
 	return False
 
-
 def isExemptFromLowerCaseCheck(artist1):
 	for lowerCaseExemption in lowerCaseExemptions:
 		if lowerCaseExemption in artist1:
 			return True
 	return False
-
 
 def isExemptFromSimilarityCheck(title1, title2):
 	for similarityExemption in similarityExemptions:

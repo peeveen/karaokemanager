@@ -1,6 +1,61 @@
+from time import sleep
 import ctypes
 from ctypes import wintypes
-from enum import IntEnum, auto
+from enum import IntEnum
+
+class Hotkey:
+	def __init__(self, config):
+		modifiers=config.get("modifiers")
+		if modifiers is None:
+			self.modifiers=[]
+		else:
+			self.modifiers=set(map(lambda mod: parseModifier(mod), modifiers))
+		key=config.get("key")
+		self.key=getKeyCode(key)
+
+	def press(self):
+		for mod in self.modifiers:
+			PressKey(mod)
+		PressKey(self.key)
+		ReleaseKey(self.key)
+		sleep(0.25)
+		for mod in self.modifiers:
+			ReleaseKey(mod)
+
+def PressKey(hexKeyCode):
+	x = INPUT(type=INPUT_KEYBOARD,
+				ki=KEYBDINPUT(wVk=hexKeyCode))
+	user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+
+def ReleaseKey(hexKeyCode):
+	x = INPUT(type=INPUT_KEYBOARD,
+				ki=KEYBDINPUT(wVk=hexKeyCode,
+							dwFlags=KEYEVENTF_KEYUP))
+	user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+
+def getKeyCode(key):
+	if key is None:
+		raise Exception("No key defined for hotkey")
+	if len(key)!=1:
+		raise Exception("Key (for hotkey) should be exactly one character.")
+	key=key.lower()
+	if str.isdigit(key):
+		return KeyCodes.VK_0+int(key)
+	if str.isalpha(key):
+		return KeyCodes.VK_A+(ord(key)-ord('a'))
+	raise Exception("Hotkey should be a letter or a number.")
+
+def parseModifier(modifier):
+	if not modifier is None:
+		modifier=modifier.lower()
+		if(modifier=="shift"):
+			return KeyCodes.VK_SHIFT
+		if(modifier=="ctrl"):
+			return KeyCodes.VK_CTRL
+		if(modifier=="alt"):
+			return KeyCodes.VK_MENU
+		raise Exception("{modifier} is not a valid hotkey modifier (only 'ctrl', 'shift', or 'alt' allowed).")
+	raise Exception("Null hotkey modifier found.")	
 
 # Definitions needed to use the Win32 SendInput stuff.
 # Copied from elsewhere.
@@ -20,17 +75,11 @@ MAPVK_VK_TO_VSC = 0
 
 # msdn.microsoft.com/en-us/library/dd3757312
 class KeyCodes(IntEnum):
-  VK_TAB = 0x09
   VK_MENU = 0x12
   VK_CTRL = 0x11
   VK_SHIFT = 0x10
+  VK_0 = 0x30
   VK_A = 0x41
-  VK_P = 0x50
-  VK_Q = 0x51
-  VK_R = 0x52
-  VK_Z = 0x5A
-  VK_UP = 0x26
-  VK_DOWN = 0x28
 
 # C struct definitions
 
@@ -43,7 +92,6 @@ class MOUSEINPUT(ctypes.Structure):
 				("dwFlags", wintypes.DWORD),
 				("time", wintypes.DWORD),
 				("dwExtraInfo", wintypes.ULONG_PTR))
-
 
 class KEYBDINPUT(ctypes.Structure):
 	_fields_ = (("wVk", wintypes.WORD),
@@ -85,14 +133,3 @@ user32.SendInput.errcheck = _check_count
 user32.SendInput.argtypes = (wintypes.UINT, # nInputs
 							 LPINPUT,       # pInputs
 							 ctypes.c_int)  # cbSize
-
-def PressKey(hexKeyCode):
-	x = INPUT(type=INPUT_KEYBOARD,
-			  ki=KEYBDINPUT(wVk=hexKeyCode))
-	user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-
-def ReleaseKey(hexKeyCode):
-	x = INPUT(type=INPUT_KEYBOARD,
-			  ki=KEYBDINPUT(wVk=hexKeyCode,
-							dwFlags=KEYEVENTF_KEYUP))
-	user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
