@@ -364,7 +364,7 @@ class State:
 					newState.singers.remove(nextSinger)
 					newState.singers.append(nextSinger)
 				del nextSinger.songs[songToPlayIndex]
-				self.driver.playKaraokeFile(fileToStart, song.keyChange, errors)
+				newState.driver.playKaraokeFile(fileToStart, song.keyChange, errors)
 				return newState
 		else:
 			errors.append("There are no singers with songs available.")

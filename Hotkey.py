@@ -21,12 +21,12 @@ class Hotkey:
 		for mod in self.modifiers:
 			ReleaseKey(mod)
 
-def PressKey(self, hexKeyCode):
+def PressKey(hexKeyCode):
 	x = INPUT(type=INPUT_KEYBOARD,
 				ki=KEYBDINPUT(wVk=hexKeyCode))
 	user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
 
-def ReleaseKey(self, hexKeyCode):
+def ReleaseKey(hexKeyCode):
 	x = INPUT(type=INPUT_KEYBOARD,
 				ki=KEYBDINPUT(wVk=hexKeyCode,
 							dwFlags=KEYEVENTF_KEYUP))
