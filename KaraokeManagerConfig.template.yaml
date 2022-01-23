@@ -40,6 +40,8 @@ music:
       }
 # Config for Winamp specific stuff.
 winamp:
+  # Path to Winamp executable
+  exe: C:\\Program files (x86)\\Winamp\\winamp.exe
   # Hotkeys for pitch change. Manually set these in PaceMaker.
   hotkeys:
     # Modifiers can be any combination of ctrl/shift/alt

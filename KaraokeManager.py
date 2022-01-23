@@ -1,4 +1,4 @@
-from os import environ, path, walk, getenv, makedirs, remove
+from os import path, walk, getenv, makedirs, remove
 from textdistance import levenshtein
 from collections import defaultdict
 from time import sleep
@@ -6,13 +6,12 @@ from colorama import Fore, Style
 import random
 import threading
 import sys
-from Commands import commands, CommandType, Command, parseCommand
+from Commands import CommandType, parseCommand
 from State import State
 from Exemptions import getExemptions, isExemptFromLowerCaseCheck, isExemptFromReversalCheck, isExemptFromSimilarityCheck, isExemptFromTheCheck
 from KaraokeFile import KaraokeFile
 from MusicFile import MusicFile
-from Song import Song
-from FilePattern import FilePattern, parseFilePattern
+from FilePattern import parseFilePattern
 from SingerColumn import SingerColumn
 from SongSelector import selectSong, showSongList
 from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
@@ -645,8 +644,11 @@ if not path.isdir(dataPath):
 	makedirs(dataPath)
 if path.exists(requestsFilename):
 	remove(requestsFilename)
+
+driver=WinampDriver(config.get("winamp"), errors)
+
 buildSongLists([])
-state = State(WinampDriver(config.get("winamp"), errors), appDataFolder, karaokeFiles, errors)
+state = State(driver, appDataFolder, karaokeFiles, errors)
 while True:
 	clear()
 	state.save(errors)

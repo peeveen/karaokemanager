@@ -1,4 +1,4 @@
-from os import startfile
+from os import startfile, path
 from Driver import Driver
 from time import sleep
 from Hotkey import Hotkey
@@ -10,6 +10,12 @@ class WinampDriver(Driver):
 	pitchResetHotkey = None
 
 	def __init__(self, config, errors):
+		exePath=config.get("exe")
+		if not exePath is None:
+			if path.exists(exePath):
+				startfile(exePath)
+			else:
+				errors.append("The configured Winamp exe path ({exePath}) does not exist.")
 		hotkeysConfig=config.get("hotkeys")
 		if hotkeysConfig is None:
 			errors.append("No hotkeys defined for Winamp driver.")
