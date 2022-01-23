@@ -17,9 +17,12 @@ class KaraokeFile(MusicFile):
 
 	def getSongListText(self, keyChange):
 		txt = MusicFile.getSongListText(self)
-		if keyChange is None:
+		if keyChange is None or keyChange==0:
 			keyChange = ""
 		else:
-			keyChange = f"({keyChange})"
+			sign=""
+			if keyChange>0:
+				sign="+"
+			keyChange = f"({sign}{keyChange})"
 		return f"{txt} {Fore.MAGENTA}{Style.BRIGHT}{keyChange}{Style.RESET_ALL}"
 

@@ -8,7 +8,7 @@ class Song:
 		self.keyChange = keyChange
 
 	def writeToStateFile(self, file):
-		anyKeyChange = ''
-		if not self.keyChange is None:
-			anyKeyChange = self.keyChange
-		file.write(f"\t{self.file.path}|{anyKeyChange}\n")
+		sign=""
+		if(self.keyChange>0):
+			sign="+"
+		file.write(f"\t{self.file.path}|{sign}{self.keyChange}\n")

@@ -16,6 +16,7 @@ from FilePattern import FilePattern, parseFilePattern
 from SingerColumn import SingerColumn
 from SongSelector import selectSong, showSongList
 from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
+from WinampDriver import WinampDriver
 import yaml
 
 # The current state
@@ -622,7 +623,7 @@ def getSettings(configPath):
 			musicPaths,musicPatterns=getPathsAndPatterns(config,"music")
 			if(len(dataFilesPath)>0):
 				dataPath=dataFilesPath
-				return
+				return config
 			raise Exception("'dataPath' (from YAML) must not be an empty string.")
 		raise Exception("Failed to parse YAML configuration.")
 	raise Exception("{defaultConfigFilename} not found.")
@@ -635,7 +636,7 @@ configPath=defaultConfigFilename
 if len(sys.argv)>1:
 	configPath=sys.argv[1]
 try:
-	getSettings(configPath)
+	config=getSettings(configPath)
 except Exception as e:
 	print(f"{Fore.RED}Error parsing the configuration file: {e}{Style.RESET_ALL}")
 	exit(1)
@@ -645,7 +646,7 @@ if not path.isdir(dataPath):
 if path.exists(requestsFilename):
 	remove(requestsFilename)
 buildSongLists([])
-state = State(appDataFolder, karaokeFiles)
+state = State(WinampDriver(config.get("winamp"), errors), appDataFolder, karaokeFiles, errors)
 while True:
 	clear()
 	state.save(errors)

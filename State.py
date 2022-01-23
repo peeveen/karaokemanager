@@ -1,10 +1,8 @@
-from os import path, startfile
+from os import path
 from copy import deepcopy
 from Singer import Singer
 from SongSelector import selectSong
-from WindowsInput import PressKey, ReleaseKey, KeyCodes
 from Song import Song
-from time import sleep
 
 # Filename to persist the state to.
 # Gets written after every command, in case the app crashes.
@@ -17,6 +15,7 @@ singersQueueFilename = "KaraokeManager.singers.txt"
 # Current state of the app.
 class State:
 	singers = None
+	driver = None
 	firstSong = True
 	activeSongListSingerName = None
 	nextState = None
@@ -24,13 +23,14 @@ class State:
 	statePath = None
 	queuePath = None	
 
-	def __init__(self, dataFolder, karaokeFiles):
+	def __init__(self, driver, dataFolder, karaokeFiles, errors):
+		self.driver = driver
 		self.statePath = path.join(dataFolder,stateFilename)
 		self.queuePath = path.join(dataFolder,singersQueueFilename)
-		self.load(karaokeFiles)
+		self.load(karaokeFiles, errors)
 
 	# Load the last saved state.
-	def load(self, karaokeFiles):
+	def load(self, karaokeFiles, errors):
 		self.singers = []
 		if path.isfile(self.statePath):
 			with open(self.statePath, mode="r", encoding="utf-8") as f:
@@ -41,12 +41,10 @@ class State:
 						if not currentSinger is None:
 							lineBits = line.strip().split("|")
 							karaokeFile = getKaraokeFileFromPath(lineBits[0], karaokeFiles)
-							keyChange = lineBits[1].strip()
-							if len(keyChange) == 0:
-								keyChange = None
-							if not karaokeFile is None:
-								currentSinger.songs.append(
-									Song(karaokeFile, keyChange))
+							keyChange = getKeyChangeValue(lineBits[1].strip(), errors)
+							if keyChange!=-99:
+								if not karaokeFile is None:
+									currentSinger.songs.append(Song(karaokeFile, keyChange))
 					else:
 						if not currentSinger is None:
 							self.singers.append(currentSinger)
@@ -184,7 +182,7 @@ class State:
 						index = len(matchedSinger.songs)
 					newState = self.mutate()
 					matchedSinger = newState.getSingerFromID(singerID, False, True, errors)
-					matchedSinger.insertSong(index, Song(karaokeSong, keyChange))
+					matchedSinger.insertSong(index, Song(karaokeSong, keychangeval))
 					return newState
 		return self
 
@@ -366,62 +364,11 @@ class State:
 					newState.singers.remove(nextSinger)
 					newState.singers.append(nextSinger)
 				del nextSinger.songs[songToPlayIndex]
-				if newState.firstSong:
-					startfile(fileToStart)
-					sleep(5)
-					newState.firstSong = False
-				applyKeyChange(song.keyChange, errors)
-				startfile(fileToStart)
+				self.driver.playKaraokeFile(fileToStart, song.keyChange, errors)
 				return newState
 		else:
 			errors.append("There are no singers with songs available.")
 		return self
-
-
-
-# Sends the Pacemaker hotkey to knock the pitch down one semitone.
-def pitchDown():
-	PressKey(KeyCodes.VK_SHIFT)
-	PressKey(KeyCodes.VK_CTRL)
-	PressKey(KeyCodes.VK_A)
-	ReleaseKey(KeyCodes.VK_A)
-	sleep(0.25)
-	ReleaseKey(KeyCodes.VK_SHIFT)
-	ReleaseKey(KeyCodes.VK_CTRL)
-
-# Sends the Pacemaker hotkey to raise the pitch up one semitone.
-def pitchUp():
-	PressKey(KeyCodes.VK_SHIFT)
-	PressKey(KeyCodes.VK_CTRL)
-	PressKey(KeyCodes.VK_Q)
-	ReleaseKey(KeyCodes.VK_Q)
-	sleep(0.25)
-	ReleaseKey(KeyCodes.VK_SHIFT)
-	ReleaseKey(KeyCodes.VK_CTRL)
-
-# Sends the Pacemaker hotkey to reset the pitch change to zero.
-def resetPitch():
-	PressKey(KeyCodes.VK_SHIFT)
-	PressKey(KeyCodes.VK_CTRL)
-	PressKey(KeyCodes.VK_Z)
-	ReleaseKey(KeyCodes.VK_Z)
-	sleep(0.25)
-	ReleaseKey(KeyCodes.VK_SHIFT)
-	ReleaseKey(KeyCodes.VK_CTRL)
-
-# Sends the correct sequence of hotkeys to set the key change to
-# whatever the user requested for a particular song.
-def applyKeyChange(keyChange, errors):
-	resetPitch()
-	keyChangeVal = getKeyChangeValue(keyChange, errors)
-	if not keyChangeVal is None and keyChangeVal != -99:
-		while keyChangeVal != 0:
-			if keyChangeVal < 0:
-				pitchDown()
-				keyChangeVal += 1
-			else:
-				pitchUp()
-				keyChangeVal -= 1
 
 # Given a path, get the karaoke file that matches it.
 # Used when restoring state on startup to check that a cued-up song still
@@ -448,4 +395,4 @@ def getKeyChangeValue(keyChange, errors):
 						return intval
 		errors.append("Invalid key change, should in format \"+N\" or \"-N\", where N is a value between 1 and 5.")
 		return -99
-	return None
+	return 0
