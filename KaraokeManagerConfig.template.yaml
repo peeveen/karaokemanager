@@ -53,14 +53,9 @@ music:
   # can also permanently add items to this file during runtime with the
   # "cue,[title],add" command.
   backgroundMusicPlaylistFilename: BackgroundMusicPlaylist.txt
-# Config for Winamp specific stuff.
+# Settings for Winamp. Note that if you're using Pacemaker for key changes,
+# you should manually configure it to reset when the song changes (see
+# Pacemaker options dialog).
 winamp:
   # Path to Winamp executable
   exe: C:\\Program files (x86)\\Winamp\\winamp.exe
-  # Hotkeys for pitch change. Manually set these in PaceMaker.
-  hotkeys:
-    # Modifiers can be any combination of ctrl/shift/alt
-    # Key values must be letters or numbers
-    pitchUp: { modifiers: [ctrl, shift], key: q }
-    pitchDown: { modifiers: [ctrl, shift], key: a }
-    pitchReset: { modifiers: [ctrl, shift], key: z }

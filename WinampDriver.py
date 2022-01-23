@@ -1,10 +1,13 @@
 from os import startfile, path
 from Driver import Driver
+from win32ui import FindWindowEx
 from time import sleep
-from Hotkey import Hotkey
+import threading
+
+WM_APP = 0x8000
+PM_SET_PITCH = WM_APP+7
 
 class WinampDriver(Driver):
-	firstSong = True
 	pitchUpHotkey = None
 	pitchDownHotkey = None
 	pitchResetHotkey = None
@@ -16,62 +19,27 @@ class WinampDriver(Driver):
 				startfile(exePath)
 			else:
 				errors.append("The configured Winamp exe path ({exePath}) does not exist.")
-		hotkeysConfig=config.get("hotkeys")
-		if hotkeysConfig is None:
-			errors.append("No hotkeys defined for Winamp driver.")
-		else:
-			pitchUpConfig=hotkeysConfig.get("pitchUp")
-			if pitchUpConfig is None:
-				errors.append("No pitchUp hotkey defined for Winamp driver.")
-			else:
-				try:
-					self.pitchUpHotkey=Hotkey(pitchUpConfig)
-				except Exception as e:
-					errors.append(e)
-			pitchDownConfig=hotkeysConfig.get("pitchDown")
-			if pitchDownConfig is None:
-				errors.append("No pitchReset hotkey defined for Winamp driver.")
-			else:
-				try:
-					self.pitchDownHotkey=Hotkey(pitchDownConfig)
-				except Exception as e:
-					errors.append(e)
-			pitchResetConfig=hotkeysConfig.get("pitchReset")
-			if pitchResetConfig is None:
-				errors.append("No pitchReset hotkey defined for Winamp driver.")
-			else:
-				try:
-					self.pitchResetHotkey=Hotkey(pitchResetConfig)
-				except Exception as e:
-					errors.append(e)
 
 	def playKaraokeFile(self,karaokeFile, keyChange, errors):
-		if self.firstSong:
-			startfile(karaokeFile)
-			sleep(5)
-			self.firstSong = False
-		self.applyKeyChange(keyChange, errors)
 		startfile(karaokeFile)
-
-	# Sends the correct sequence of hotkeys to set the key change to
-	# whatever the user requested for a particular song.
-	def applyKeyChange(self, keyChange, errors):
-		if not self.pitchResetHotkey is None:
-			self.pitchResetHotkey.press()
+		pacemakerWindow=FindWindowEx(None, None, None, "PaceMaker Plug-in")
+		if pacemakerWindow is None:
+			errors.append("Could not find PaceMaker window.")
 		else:
-			errors.append("Could not press pitch reset hotkey.")
-		while keyChange != 0:
-			if keyChange < 0:
-				if not self.pitchDownHotkey is None:
-					self.pitchDownHotkey.press()
-				else:
-					errors.append("Could not press pitch down hotkey.")
-					return
-				keyChange += 1
-			else:
-				if not self.pitchUpHotkey is None:
-					self.pitchUpHotkey.press()
-				else:
-					errors.append("Could not press pitch up hotkey.")
-					return
-				keyChange -= 1
+			# Run a thread. We can't just set it once, cos the timing between
+			# Pacemaker resetting itself when a new file starts, and us sending
+			# this message to set a value, is too tight. We will set it once
+			# every second for the next five seconds.
+			keyChangeThread = threading.Thread(
+				target=applyKeyChange, args=(keyChange,5,))
+			keyChangeThread.daemon = True
+			keyChangeThread.start()
+
+# Sends the PM_SET_PITCH message to the PaceMaker window (if available) to set
+# the correct key change to whatever the user requested for a particular song.
+def applyKeyChange(keyChange,count):
+	pacemakerWindow=FindWindowEx(None, None, None, "PaceMaker Plug-in")
+	if not pacemakerWindow is None:
+		for _ in range(count):
+			pacemakerWindow.SendMessage(PM_SET_PITCH,0,keyChange*1000)
+			sleep(1)
