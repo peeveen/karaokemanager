@@ -1,10 +1,13 @@
-# Path to the folder where you will store your manually-created music playlists,
-# exemption files, and suchlike. Also, lists of problematic files will be written
-# here after scans.
-# Note that this folder is only for "permanent" data. Transient data files like
-# the singers list, program state, music requests, etc, will be written to:
-# %APPDATA%\FullHouse Entertainment\KaraokeManager.
+# Path to the folder where you will store your permanent data. Things like
+# manually-created music playlists, exemption files, and suchlike. Also,
+# lists of problematic files will be written here after scans for you to
+# examine.
 dataPath: "C:\\your\\data\\path\\here"
+# Folder where KaraokeManager will write transient data files like the
+# singers list, program state, music requests, etc. Separated from the
+# other path in case you want to keep that one in a cloud sync folder,
+# or something.
+tempDataPath: "C:\\your\\temp\\data\\path\\here"
 karaoke:
   # Where you store your karaoke files.
   # List as many paths as you like.

@@ -1,4 +1,4 @@
-from os import path, walk, getenv, makedirs, remove
+from os import path, walk, makedirs, remove
 from textdistance import levenshtein
 from collections import defaultdict
 from time import sleep
@@ -30,14 +30,17 @@ karaokePatterns = []
 musicPatterns = []
 # Path to the folder where data files (music playlist, exemption lists, etc) are stored
 dataPath = None
-# Path to the appdata folder. We will write "temporary" data here, like the persistent state, request queue, etc.
-appDataFolder = path.join(getenv("APPDATA"),"FullHouse Entertainment","KaraokeManager")
+# Path to the temp data folder. We will write "temporary" data here, like the persistent state, request queue, etc.
+tempDataPath = None
+# Path to the current music requests file
+requestsFilename = None
+# Path to the background music list (list of paths of files that match the BackgroundMusicPlaylist entries)
+backgroundMusicFilename = None
+# Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
+# suggestions.
+randomSuggestionsFilename = None
 # Filename of the background music list file (just artist & titles)
 backgroundMusicPlaylistFilename = "BackgroundMusicPlaylist.txt"
-# Path to the current music requests file
-requestsFilename = path.join(appDataFolder,"KaraokeManager.musicRequests.txt")
-# Path to the background music list (list of paths of files that match the BackgroundMusicPlaylist entries)
-backgroundMusicFilename = path.join(appDataFolder,"KaraokeManager.backgroundMusic.txt")
 # Name of file that we will write to when we find malformed filenames.
 filenameErrorsFilename = "BadFilenames.txt"
 # Name of file that we will write to when we find BackgroundMusicPlaylist entries that do not correspond
@@ -53,9 +56,6 @@ karaokeErrorsFilename = "KaraokeArtistAndTitlesProblems.txt"
 musicErrorsFilename = "MusicArtistAndTitleProblems.txt"
 # Name of file that we will write to with a list of files that we ignored
 ignoredFilesFilename = "IgnoredFiles.txt"
-# Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
-# suggestions.
-randomSuggestionsFilename = path.join(appDataFolder,"KaraokeManager.songSuggestion.txt")
 # Current background music playlist (strings from the BackgroundMusicPlaylist file)
 backgroundMusicPlaylist = set([])
 # List of karaoke files (KaraokeFile objects)
@@ -612,30 +612,43 @@ def getSettings(configPath):
 	global musicPaths
 	global karaokePaths
 	global dataPath
+	global tempDataPath
 	global karaokePatterns
 	global musicPatterns
+	global requestsFilename
+	global backgroundMusicFilename
+	global randomSuggestionsFilename
 	global backgroundMusicPlaylistFilename
 	if path.isfile(configPath):
 		config = yaml.safe_load(open(configPath))
 		if not config is None:
-			dataFilesPath=config.get('dataPath').strip()
+			dataFilesPath=config.get('dataPath')
+			tempDataFilesPath=config.get('tempDataPath')
 			karaokePaths,karaokePatterns=getPathsAndPatterns(config,"karaoke")
 			musicPaths,musicPatterns=getPathsAndPatterns(config,"music")
 			musicConfig=config.get("music")
 			if not musicConfig is None:
-				backgroundMusicFilename=musicConfig.get("backgroundMusicPlaylistFilename")
-				if not backgroundMusicFilename is None:
-					backgroundMusicPlaylistFilename=backgroundMusicFilename
-			if(len(dataFilesPath)>0):
-				dataPath=dataFilesPath
-				return config
-			raise Exception("'dataPath' (from YAML) must not be an empty string.")
+				bgmFilename=musicConfig.get("backgroundMusicPlaylistFilename")
+				if not bgmFilename is None:
+					backgroundMusicPlaylistFilename=bgmFilename
+			if dataFilesPath is None or len(dataFilesPath.strip())==0:
+				raise Exception("'dataPath' (from YAML) must not be an empty string.")
+			if tempDataFilesPath is None or len(tempDataFilesPath.strip())==0:
+				raise Exception("'tempDataPath' (from YAML) must not be an empty string.")
+			dataPath=dataFilesPath.strip()
+			tempDataPath=tempDataFilesPath.strip()
+			# Path to the current music requests file
+			requestsFilename = path.join(tempDataPath,"KaraokeManager.musicRequests.txt")
+			# Path to the background music list (list of paths of files that match the BackgroundMusicPlaylist entries)
+			backgroundMusicFilename = path.join(tempDataPath,"KaraokeManager.backgroundMusic.txt")
+			# Path of file to which we will periodically write a random karaoke artist & song title, for on-screen
+			# suggestions.
+			randomSuggestionsFilename = path.join(tempDataPath,"KaraokeManager.songSuggestion.txt")
+			return config
 		raise Exception("Failed to parse YAML configuration.")
 	raise Exception("{defaultConfigFilename} not found.")
 
 # Main execution loop
-if not path.isdir(appDataFolder):
-	makedirs(appDataFolder)
 clear()
 configPath=defaultConfigFilename
 if len(sys.argv)>1:
@@ -646,6 +659,8 @@ except Exception as e:
 	print(f"{Fore.RED}Error parsing the configuration file: {e}{Style.RESET_ALL}")
 	exit(1)
 
+if not path.isdir(tempDataPath):
+	makedirs(tempDataPath)
 if not path.isdir(dataPath):
 	makedirs(dataPath)
 if path.exists(requestsFilename):
@@ -654,7 +669,7 @@ if path.exists(requestsFilename):
 driver=WinampDriver(config.get("winamp"), errors)
 
 buildSongLists([])
-state = State(driver, appDataFolder, karaokeFiles, errors)
+state = State(driver, tempDataPath, karaokeFiles, errors)
 while True:
 	clear()
 	state.save(errors)
