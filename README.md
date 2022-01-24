@@ -8,8 +8,6 @@ Command-line karaoke session management utility, driving Winamp.
 
 - Maintains a list of singers and their selected songs, key changes, etc.
 - Easily add/delete/move singers and songs with short, simple commands. No mouse required.
-- Drives Winamp as the MP3/CDG player (so Windows-only for the moment).
-- Talks to Winamp [Pacemaker pitch changer plugin](https://www.surina.net/pacemaker/) to automatically set key changes.
 - Fast undo & redo functionality for fat finger syndrome.
 - Singers maintain their position in the queue, even if they currently have no songs cued up.
 - Heavy OCD rating.
@@ -17,6 +15,8 @@ Command-line karaoke session management utility, driving Winamp.
   - Can analyze your library for duplicates, bad capitalization, similar-looking titles, missing "The" prefixes, etc (lists of analysis exemptions can be created).
 - Writes the current list of singers to a file for the [SingersQueue plugin](https://github.com/peeveen/gen_singersQueue) to display.
 - Not just karaoke! There are also commands for adding non-karaoke music tracks to a playlist, for the [AutoDJ plugin](https://github.com/peeveen/gen_autoDJ) to play in-between singers.
+- Drives Winamp as the MP3/CDG player (so Windows-only for the moment).
+  - Talks to [Pacemaker pitch changer plugin](https://www.surina.net/pacemaker/) to automatically set key changes.
 
 # To run it
 

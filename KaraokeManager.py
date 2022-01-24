@@ -119,8 +119,7 @@ def showHelp():
 # Cues up a song
 def cueSong(params, errors):
 	global messages
-	paramCount = len(params)
-	if paramCount == 0:
+	if not any(params):
 		errors.append("Not enough arguments. Expected song search string.")
 	else:
 		song = selectSong(params[0], musicFiles)
@@ -152,7 +151,7 @@ def chunks(l, n):
 def showSingers():
 	columnSize = 10
 	singersWithRequests = state.getSingersDisplayList()
-	if len(singersWithRequests) == 0:
+	if not any(singersWithRequests):
 		print("No singers.")
 	else:
 		columnsOfSingers = []
@@ -270,16 +269,12 @@ def getBackgroundMusicPlaylist():
 def buildDictionaries():
 	global musicDictionary
 	global karaokeDictionary
-	songCount = len(karaokeFiles)
 	karaokeDictionary = defaultdict()
-	for i in range(0, songCount):
-		songFile = karaokeFiles[i]
+	for songFile in karaokeFiles:
 		karaokeDictionary.setdefault(songFile.artist, defaultdict()).setdefault(
 			songFile.title, []).append(songFile)
-	songCount = len(musicFiles)
 	musicDictionary = defaultdict()
-	for i in range(0, songCount):
-		songFile = musicFiles[i]
+	for songFile in musicFiles:
 		musicDictionary.setdefault(songFile.artist, defaultdict()).setdefault(
 			songFile.title, []).append(songFile)
 
@@ -300,10 +295,8 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 		if percent > lastPercent:
 			print(padOrEllipsize(f"Looking for duplicates: {percent}% done", 119), end="\r")
 			lastPercent = percent
-		keys = list(songDict.keys())
-		for i in range(0, len(keys)):
-			songCollection=songDict[keys[i]]
-			if(len(songCollection)>1):
+		for songCollection in songDict.values():
+			if len(songCollection)>1:
 				duplicates.extend(songCollection[1:])
 	for song in files:
 		if not song.artist in artists:
@@ -415,7 +408,7 @@ def randomSongSuggestionGeneratorThread():
 	while not stopSuggestions:
 		if counter == 0:
 			counter = 20
-			if len(karaokeDictionary) > 0:
+			if any(karaokeDictionary):
 				artistKeys = list(karaokeDictionary.keys())
 				randomArtistIndex = random.randrange(len(karaokeDictionary))
 				artistString = artistKeys[randomArtistIndex]
@@ -492,11 +485,11 @@ def createMusicFile(path, groupMap):
 def parseFilename(filePath, filename, patterns, errors, ignored, fileBuilder):
 	nameWithoutExtension, extension = path.splitext(filename)
 	extension=extension.strip('.')
-	validPatterns=list(filter(lambda pattern: pattern.extensionMatches(extension), patterns)) 
-	if len(validPatterns)>0:
+	validPatterns=list(filter(lambda pattern: pattern.extensionMatches(extension), patterns))
+	if any(validPatterns):
 		for pattern in validPatterns:
 			groupMap = pattern.parseFilename(nameWithoutExtension)
-			if len(groupMap)!=0:
+			if any(groupMap):
 				file=fileBuilder(filePath, groupMap)
 				if not file is None:
 					return file
@@ -558,8 +551,8 @@ def buildSongLists(params):
 	ignoredFiles=[]
 	karaokeFiles=[]
 	musicFiles=[]
-	quickanalyze = len(params) > 0 and (params[0] == "quickanalyze" or params[0] == "q")
-	fullanalyze = len(params) > 0 and (params[0] == "analyze" or params[0] == "a")
+	quickanalyze = any(params) and (params[0] == "quickanalyze" or params[0] == "q")
+	fullanalyze = any(params) and (params[0] == "analyze" or params[0] == "a")
 	karaokeFiles, karaokeFilenameErrors, ignoredKaraokeFiles=scanFiles(karaokePaths,scanKaraokeFile,None)
 	musicFiles, musicFilenameErrors, ignoredMusicFiles=scanFiles(musicPaths,scanMusicFile,backgroundMusic)
 	filenameErrors = karaokeFilenameErrors+musicFilenameErrors
@@ -571,12 +564,12 @@ def buildSongLists(params):
 	writeTextFile(backgroundMusic,backgroundMusicFilename)
 	buildDictionaries()
 	startSuggestionThread()
-	anythingToReport = len(filenameErrors) > 0 or len(backgroundMusicPlaylist)>0
+	anythingToReport = any(filenameErrors) or any(backgroundMusicPlaylist)
 	duplicates=[]
 	songErrors=[]
 	if quickanalyze or fullanalyze:
 		analyzeFiles(fullanalyze,songErrors,duplicates)
-		anythingToReport = anythingToReport or len(songErrors)>0 or len(duplicates)>0
+		anythingToReport = anythingToReport or any(songErrors) or any(duplicates)
 	if anythingToReport:
 		scanCompleteMessage=padOrEllipsize("Scan complete.", 119)
 		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")

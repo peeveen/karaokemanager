@@ -48,7 +48,7 @@ music:
   # background music songs. One per line, with the format "artist - title".
   # Anything listed in this file that doesn't match any music files found in the
   # music paths will be flagged as a problem on startup. KaraokeManager will
-  # writes the full paths of the music files that match these background music
+  # write the full paths of the music files that match these background music
   # titles to "KaraokeManager.backgroundMusic.txt" for AutoDJ to work with. You
   # can also permanently add items to this file during runtime with the
   # "cue,[title],add" command.

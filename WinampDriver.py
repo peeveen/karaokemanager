@@ -71,5 +71,5 @@ class WinampDriver(Driver):
 # the correct key change to whatever the user requested for a particular song.
 def applyKeyChange(pacemakerHwnd,keyChange,count):
 	for _ in range(count):
-		SendMessage(pacemakerHwnd,PM_SET_PITCH,0,keyChange*1000)
 		sleep(1)
+		SendMessage(pacemakerHwnd,PM_SET_PITCH,0,keyChange*1000)

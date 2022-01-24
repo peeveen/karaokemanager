@@ -65,6 +65,7 @@ def readLinesFromDataTextFile(dataFilesPath,filename):
 	if path.isfile(fullPath):
 		with open(fullPath, mode="r", encoding="utf-8") as f:
 			return f.readlines()
+	return []
 
 def getItemsFromDataTextFile(dataFilesPath,filename,parserFunction,errors):
 	lines=readLinesFromDataTextFile(dataFilesPath,filename)
