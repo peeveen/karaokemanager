@@ -4,14 +4,6 @@ from singer import Singer
 from song_selector import select_song
 from song import Song
 
-# Filename to persist the state to.
-# Gets written after every command, in case the app crashes.
-STATE_FILENAME = "KaraokeManager.state.txt"
-# Filename to persist the list of singers to.
-# Gets written after every command, in the case the app crashes.
-# Gets read by the Winamp SingersQueue plugin to show the current queue onscreen.
-SINGERS_QUEUE_FILENAME = "KaraokeManager.singers.txt"
-
 # Current state of the app.
 class State:
 	singers = None
@@ -21,10 +13,10 @@ class State:
 	state_path = None
 	queue_path = None	
 
-	def __init__(self, data_folder, karaoke_files, errors):
-		self.state_path = path.join(data_folder,STATE_FILENAME)
-		self.queue_path = path.join(data_folder,SINGERS_QUEUE_FILENAME)
-		self.load(karaoke_files, errors)
+	def __init__(self, config, library, errors):
+		self.state_path = config.paths.state
+		self.queue_path = config.paths.singers_queue
+		self.load(library.karaoke_files, errors)
 
 	# Load the last saved state.
 	def load(self, karaokeFiles, errors):
@@ -56,13 +48,13 @@ class State:
 				for singer in self.singers:
 					singer.write_to_state_file(f)
 		except PermissionError:
-			errors.append("Failed to write state file.")
+			errors.append(Error("Failed to write state file."))
 		try:
 			with open(self.queue_path, mode="w", encoding="utf-8") as f:
 				for singer in self.singers:
 					singer.write_to_queue_file(f)
 		except PermissionError:
-			errors.append("Failed to write singer names file.")
+			errors.append(Error("Failed to write singer names file."))
 
 	def getSingersDisplayList(self):
 		singersCopy = self.singers.copy()
@@ -80,7 +72,7 @@ class State:
 		if id.isdigit():
 			singer_index = int(id)
 			if singer_index <= 0 or singer_index > len(self.singers):
-				errors.append(f"Singer index out of bounds: it must be between 1 and {len(self.singers)}")
+				errors.append(Error(f"Singer index out of bounds: it must be between 1 and {len(self.singers)}"))
 				return None
 			return singer_index-1
 		id = id.lower()
@@ -97,7 +89,7 @@ class State:
 				if not next_singer is None:
 					id = next_singer.name.lower()
 				else:
-					errors.append("There is no active song list to add to.")
+					errors.append(Error("There is no active song list to add to."))
 					return None
 		for i, singer in enumerate(self.singers):
 			if singer.name.lower() == id:
@@ -107,10 +99,10 @@ class State:
 			if id in singer.name.lower():
 				matches.append(i)
 		if len(matches) == 0:
-			errors.append(f"No match found for given singer ID \"{id}\"")
+			errors.append(Error(f"No match found for given singer ID \"{id}\""))
 			return None
 		if len(matches) > 1:
-			errors.append(f"Multiple matches found for given singer ID \"{id}\"")
+			errors.append(Error(f"Multiple matches found for given singer ID \"{id}\""))
 			return None
 		return matches[0]
 
@@ -124,7 +116,7 @@ class State:
 		same_name_singers = [
 			singer for singer in self.singers if singer.name.lower() == singer_name.lower()]
 		if len(same_name_singers) > 0:
-			errors.append(f"Singer with name \"{singer_name}\" already exists.")
+			errors.append(Error(f"Singer with name \"{singer_name}\" already exists."))
 		else:
 			new_state = self.mutate()			
 			new_state.singers.insert(index, Singer(singer_name))
@@ -207,7 +199,7 @@ class State:
 	def add(self, params, karaoke_files, errors):
 		param_count = len(params)
 		if param_count == 0:
-			errors.append("Not enough arguments. Expected name of new singer, or existing singer name/index.")
+			errors.append(Error("Not enough arguments. Expected name of new singer, or existing singer name/index."))
 		elif param_count == 1:
 			return self.add_new_singer(params[0], len(self.singers), errors)
 		else:
@@ -220,7 +212,7 @@ class State:
 	def insert(self, params, karaoke_files, errors):
 		param_count = len(params)
 		if param_count < 2:
-			errors.append("Not enough arguments. Expected name of new singer, or existing singer name/index.")
+			errors.append(Error("Not enough arguments. Expected name of new singer, or existing singer name/index."))
 		elif param_count == 2:
 			return self.insert_new_singer(params[0], params[1], errors)
 		elif param_count > 2:
@@ -233,7 +225,7 @@ class State:
 	def move(self, params, errors):
 		param_count = len(params)
 		if param_count < 2:
-			errors.append("Not enough arguments. Expected ID of singer.")
+			errors.append(Error("Not enough arguments. Expected ID of singer."))
 		elif param_count == 2:
 			# Move a singer in the list
 			return self.move_singer(params[0], params[1], errors)
@@ -245,7 +237,7 @@ class State:
 	def delete(self, params, errors):
 		param_count = len(params)
 		if param_count < 1:
-			errors.append("Not enough arguments. Expected ID of singer.")
+			errors.append(Error("Not enough arguments. Expected ID of singer."))
 		elif param_count == 1:
 			# Delete a singer
 			return self.delete_singer(params[0], errors)
@@ -256,26 +248,26 @@ class State:
 
 	def undo(self, errors):
 		if self.prev_state is None:
-			errors.append("No undo history available.")
+			errors.append(Error("No undo history available."))
 		else:
 			return self.prev_state
 
 	def redo(self, errors):
 		if self.next_state is None:
-			errors.append("No redo history available.")
+			errors.append(Error("No redo history available."))
 		else:
 			return self.next_state
 
 	def rename_singer(self, params, errors):
 		if len(params) < 2:
-			errors.append("Not enough arguments. Expected singer ID and new name.")
+			errors.append(Error("Not enough arguments. Expected singer ID and new name."))
 		else:
 			singer = self.get_singer_from_id(params[0], False, False, errors)
 			new_name = params[1]
 			if not singer is None:
 				for singer in self.singers:
 					if singer.name.lower() == new_name:
-						errors.append(f"Name \"{new_name}\" already exists.")
+						errors.append(Error(f"Name \"{new_name}\" already exists."))
 						return
 				new_state = self.mutate()
 				singer = new_state.get_singer_from_id(params[0], False, False, errors)
@@ -325,7 +317,7 @@ class State:
 
 	def change_song_key(self, params, errors):
 		if len(params) < 3:
-			errors.append("Not enough arguments. Expected singer ID, song ID, and new key change value.")
+			errors.append(Error("Not enough arguments. Expected singer ID, song ID, and new key change value."))
 		else:
 			singer = self.get_singer_from_id(params[0], False, False, errors)
 			if not singer is None:
@@ -364,7 +356,7 @@ class State:
 				driver.play_karaoke_file(file_to_start, song.key_change, errors)
 				return new_state
 		else:
-			errors.append("There are no singers with songs available.")
+			errors.append(Error("There are no singers with songs available."))
 		return self
 
 # Given a path, get the karaoke file that matches it.
@@ -390,6 +382,6 @@ def get_key_change_value(key_change, errors):
 						if key_change[0] == '-':
 							return -int_value
 						return int_value
-		errors.append("Invalid key change, should in format \"+N\" or \"-N\", where N is a value between 1 and 5.")
+		errors.append(Error("Invalid key change, should in format \"+N\" or \"-N\", where N is a value between 1 and 5."))
 		return -99
 	return 0

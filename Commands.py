@@ -85,7 +85,7 @@ def parse_command(command_string, errors):
 		command_bits[i] = command_bit.strip()
 	command_type = parse_command_type(command_bits[0])
 	if command_type is None:
-		errors.append(f"Unknown command: \"{command_bits[0]}\"")
+		errors.append(Error(f"Unknown command: \"{command_bits[0]}\""))
 		return None
 	else:
 		return Command(command_type, command_bits[1:])
