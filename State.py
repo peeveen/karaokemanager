@@ -363,7 +363,7 @@ class State:
 					new_state.singers.remove(next_singer)
 					new_state.singers.append(next_singer)
 				del next_singer.songs[song_to_play_index]
-				new_state.driver.playKaraokeFile(file_to_start, song.key_change, errors)
+				new_state.driver.play_karaoke_file(file_to_start, song.key_change, errors)
 				return new_state
 		else:
 			errors.append("There are no singers with songs available.")
