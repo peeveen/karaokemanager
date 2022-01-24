@@ -15,15 +15,13 @@ SINGERS_QUEUE_FILENAME = "KaraokeManager.singers.txt"
 # Current state of the app.
 class State:
 	singers = None
-	driver = None
 	active_song_list_singer_name = None
 	next_state = None
 	prev_state = None
 	state_path = None
 	queue_path = None	
 
-	def __init__(self, driver, data_folder, karaoke_files, errors):
-		self.driver = driver
+	def __init__(self, data_folder, karaoke_files, errors):
 		self.state_path = path.join(data_folder,STATE_FILENAME)
 		self.queue_path = path.join(data_folder,SINGERS_QUEUE_FILENAME)
 		self.load(karaoke_files, errors)
@@ -347,7 +345,7 @@ class State:
 								return new_state
 		return self
 
-	def play(self, params, cycle_queue, errors):
+	def play(self, params, cycle_queue, driver, errors):
 		if len(params) > 0:
 			song = params[0]
 		else:
@@ -363,7 +361,7 @@ class State:
 					new_state.singers.remove(next_singer)
 					new_state.singers.append(next_singer)
 				del next_singer.songs[song_to_play_index]
-				new_state.driver.play_karaoke_file(file_to_start, song.key_change, errors)
+				driver.play_karaoke_file(file_to_start, song.key_change, errors)
 				return new_state
 		else:
 			errors.append("There are no singers with songs available.")

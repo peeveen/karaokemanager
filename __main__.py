@@ -20,6 +20,8 @@ import yaml
 
 # The current state
 state = None
+# The driver
+driver = None
 # List of paths to karaoke files
 karaokePaths = []
 # List of paths to music (MP3/M4A/whatever) files
@@ -212,7 +214,7 @@ def processCommand(command):
 	elif command.command_type == CommandType.NAME:
 		state = state.rename_singer(command.params, errors)
 	elif command.command_type == CommandType.PLAY:
-		state = state.play(command.params, True, errors)
+		state = state.play(command.params, True, driver, errors)
 	elif command.command_type == CommandType.FILLER:
 		state = state.play(command.params, False, errors)
 	elif command.command_type == CommandType.KEY:
@@ -506,7 +508,6 @@ def scanKaraokeFile(root, file, fileCollection, secondaryFileCollection, filenam
 
 # Tries to parse a music file, adding it to a collection if successful.
 def scanMusicFile(root, file, fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
-	fileName, fileExt = path.splitext(file)
 	musicFile = parseFilename(path.join(root,file), file, musicPatterns, filenameErrors, ignoredFiles, createMusicFile)
 	if not musicFile is None:
 		fileWithoutExtension = file[0:-4]
@@ -688,7 +689,7 @@ if path.exists(requestsFilename):
 driver=createDriver(config, errors)
 
 buildSongLists([])
-state = State(driver, tempDataPath, karaokeFiles, errors)
+state = State(tempDataPath, karaokeFiles, errors)
 while True:
 	clear()
 	state.save(errors)
