@@ -18,18 +18,18 @@ class CommandType(Enum):
 	NAME = auto()
 	KEY = auto()
 	FILLER = auto()
-	MUSICSEARCH = auto()
+	MUSIC_SEARCH = auto()
 	CUE = auto()
 
 # Command definition class. A combination of the command enum
 # and the string that is associated with the command.
 class CommandDefinition:
-	commandType = None
-	commandString = None
+	command_type = None
+	command_string = None
 
-	def __init__(self, commandType, commandString):
-		self.commandType = commandType
-		self.commandString = commandString
+	def __init__(self, command_type, command_string):
+		self.command_type = command_type
+		self.command_string = command_string
 
 # List of command definitions
 commands = [
@@ -50,42 +50,42 @@ commands = [
 	CommandDefinition(CommandType.FILLER, "filler"),
 	CommandDefinition(CommandType.CUE, "cue"),
 	CommandDefinition(CommandType.SEARCH, "?"),
-	CommandDefinition(CommandType.MUSICSEARCH, "??")
+	CommandDefinition(CommandType.MUSIC_SEARCH, "??")
 ]
 
 # Result of a parsed command
 class Command:
-	commandType = None
+	command_type = None
 	# The series of additional parameters that were entered after the command string
 	# e.g. "add,Steve,Don't Look Back In Anger" would have two params: "Steve", and
 	# "Don't Look Back In Anger"
 	params = []
 
-	def __init__(self, commandType, params):
-		self.commandType = commandType
+	def __init__(self, command_type, params):
+		self.command_type = command_type
 		self.params = params
 
 # Attempts to parse the command type by checking the command string that was entered.
-def parseCommandType(strCommand):
-	strCommand = strCommand.lower()
+def parse_command_type(command_string):
+	command_string = command_string.lower()
 	for command in commands:
-		if strCommand == command.commandString or strCommand == command.commandString[0]:
-			return command.commandType
+		if command_string == command.command_string or command_string == command.command_string[0]:
+			return command.command_type
 	return None
 
 # Parses the given command line into a Command object
-def parseCommand(strCommand, errors):
+def parse_command(command_string, errors):
 	# Special case = search
-	if strCommand[0:2] == "??":
-		return Command(CommandType.MUSICSEARCH, [strCommand[2:]])
-	if strCommand[0] == "?":
-		return Command(CommandType.SEARCH, [strCommand[1:]])
-	commandBits = strCommand.split(',')
-	for i, commandBit in enumerate(commandBits):
-		commandBits[i] = commandBit.strip()
-	commandType = parseCommandType(commandBits[0])
-	if commandType is None:
-		errors.append(f"Unknown command: \"{commandBits[0]}\"")
+	if command_string[0:2] == "??":
+		return Command(CommandType.MUSIC_SEARCH, [command_string[2:]])
+	if command_string[0] == "?":
+		return Command(CommandType.SEARCH, [command_string[1:]])
+	command_bits = command_string.split(',')
+	for i, command_bit in enumerate(command_bits):
+		command_bits[i] = command_bit.strip()
+	command_type = parse_command_type(command_bits[0])
+	if command_type is None:
+		errors.append(f"Unknown command: \"{command_bits[0]}\"")
 		return None
 	else:
-		return Command(commandType, commandBits[1:])
+		return Command(command_type, command_bits[1:])

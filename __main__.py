@@ -4,18 +4,18 @@ from collections import defaultdict
 from time import sleep
 from colorama import Fore, Style
 import random
+import importlib
 import threading
 import sys
-from Commands import CommandType, parseCommand
-from State import State
-from Exemptions import getExemptions, isExemptFromLowerCaseCheck, isExemptFromReversalCheck, isExemptFromSimilarityCheck, isExemptFromTheCheck
-from KaraokeFile import KaraokeFile
-from MusicFile import MusicFile
-from FilePattern import parseFilePattern
-from SingerColumn import SingerColumn
-from SongSelector import selectSong, showSongList
-from DisplayFunctions import clear, padOrEllipsize, SCREENHEIGHT
-from WinampDriver import WinampDriver
+from commands import CommandType, parse_command
+from state import State
+from exemptions import get_exemptions, is_exempt_from_lower_case_check, is_exempt_from_reversal_check, is_exempt_from_similarity_check, is_exempt_from_the_check
+from karaoke_file import KaraokeFile
+from music_file import MusicFile
+from file_pattern import parseFilePattern
+from singer_column import SingerColumn
+from song_selector import select_song, show_song_list
+from display_functions import clear, pad_or_ellipsize
 import yaml
 
 # The current state
@@ -77,7 +77,7 @@ errors = []
 # List of informational messages from last command
 messages = []
 # Default YAML config filename
-defaultConfigFilename='karaokeManagerConfig.yaml'
+defaultConfigFilename='.yaml'
 
 # Shows onscreen help when the user types "help"
 def showHelp():
@@ -122,7 +122,7 @@ def cueSong(params, errors):
 	if not any(params):
 		errors.append("Not enough arguments. Expected song search string.")
 	else:
-		song = selectSong(params[0], musicFiles)
+		song = select_song(params[0], musicFiles)
 		if not song is None:
 			messages.append(f"Added \"{song.title}\" by {song.artist} to the requests queue.")
 			try:
@@ -158,16 +158,16 @@ def showSingers():
 		dictionary = [{'chunk': chunk, 'index': i} for i, chunk in enumerate(chunks(singersWithRequests, columnSize))]
 		columnsOfSingers = list(map(lambda item: SingerColumn((item['index']*columnSize)+1, item['chunk']), dictionary))
 		for row in range(0, min(len(singersWithRequests), columnSize)):
-			print(*map(lambda singerColumn: singerColumn.getRowText(row), columnsOfSingers))
+			print(*map(lambda singerColumn: singerColumn.get_row_text(row), columnsOfSingers))
 
 # Print the list of songs for the current singer, or whatever singer
 # has been flagged as the current "active list" singer.
 def showSongs():
-	activeSinger = state.getActiveSongListSinger()
+	activeSinger = state.get_active_song_list_singer()
 	if activeSinger is None:
 		print(f"{Fore.MAGENTA}No current singer selected.{Style.RESET_ALL}")
 	else:
-		isSongListSingerNext = (activeSinger == state.nextSinger())
+		isSongListSingerNext = (activeSinger == state.next_singer())
 		if isSongListSingerNext:
 			nameColor = f"{Fore.WHITE}"
 		else:
@@ -178,51 +178,51 @@ def showSongs():
 			if i < 9:
 				songIndex = f" {songIndex}"
 			if isinstance(song.file, KaraokeFile):
-				print(f"{songIndex}: {song.file.getSongListText(song.keyChange)}")
+				print(f"{songIndex}: {song.file.get_song_list_text(song.key_change)}")
 			else:
-				print(f"{songIndex}: {song.file.getSongListText()}")
+				print(f"{songIndex}: {song.file.get_song_list_text()}")
 
 # Processes the given command.
 # Returns true if the command is to quit the app.
 def processCommand(command):
 	global state
 	global errors
-	if command.commandType == CommandType.HELP:
+	if command.command_type == CommandType.HELP:
 		showHelp()
-	elif command.commandType == CommandType.QUIT:
+	elif command.command_type == CommandType.QUIT:
 		return True
-	elif command.commandType == CommandType.ADD:
+	elif command.command_type == CommandType.ADD:
 		state = state.add(command.params, karaokeFiles, errors)
-	elif command.commandType == CommandType.INSERT:
+	elif command.command_type == CommandType.INSERT:
 		state = state.insert(command.params, karaokeFiles, errors)
-	elif command.commandType == CommandType.MOVE:
+	elif command.command_type == CommandType.MOVE:
 		state = state.move(command.params, errors)
-	elif command.commandType == CommandType.DELETE:
+	elif command.command_type == CommandType.DELETE:
 		state = state.delete(command.params, errors)
-	elif command.commandType == CommandType.LIST:
+	elif command.command_type == CommandType.LIST:
 		state = state.list(command.params, errors)
-	elif command.commandType == CommandType.UNDO:
+	elif command.command_type == CommandType.UNDO:
 		state = state.undo(errors)
-	elif command.commandType == CommandType.REDO:
+	elif command.command_type == CommandType.REDO:
 		state = state.redo(errors)
-	elif command.commandType == CommandType.SCAN:
+	elif command.command_type == CommandType.SCAN:
 		buildSongLists(command.params)
-	elif command.commandType == CommandType.ZAP:
+	elif command.command_type == CommandType.ZAP:
 		state = state.clear()
-	elif command.commandType == CommandType.NAME:
-		state = state.renameSinger(command.params, errors)
-	elif command.commandType == CommandType.PLAY:
+	elif command.command_type == CommandType.NAME:
+		state = state.rename_singer(command.params, errors)
+	elif command.command_type == CommandType.PLAY:
 		state = state.play(command.params, True, errors)
-	elif command.commandType == CommandType.FILLER:
+	elif command.command_type == CommandType.FILLER:
 		state = state.play(command.params, False, errors)
-	elif command.commandType == CommandType.KEY:
-		state = state.changeSongKey(command.params, errors)
-	elif command.commandType == CommandType.CUE:
+	elif command.command_type == CommandType.KEY:
+		state = state.change_song_key(command.params, errors)
+	elif command.command_type == CommandType.CUE:
 		cueSong(command.params, errors)
-	elif command.commandType == CommandType.SEARCH:
-		showSongList(command.params[0], karaokeFiles, False)
-	elif command.commandType == CommandType.MUSICSEARCH:
-		showSongList(command.params[0], musicFiles, False)
+	elif command.command_type == CommandType.SEARCH:
+		show_song_list(command.params[0], karaokeFiles, False)
+	elif command.command_type == CommandType.MUSIC_SEARCH:
+		show_song_list(command.params[0], musicFiles, False)
 	return False
 
 # Asks the user for a command, and parses it
@@ -234,7 +234,7 @@ def getCommand():
 		pass
 	command = command.strip()
 	if len(command) > 0:
-		parsedCommand = parseCommand(command, errors)
+		parsedCommand = parse_command(command, errors)
 		return parsedCommand
 	return None
 
@@ -281,7 +281,7 @@ def buildDictionaries():
 # Scans a list of files for potential duplicates, bad filenames, etc.
 def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 	global errors
-	getExemptions(dataPath, errors)
+	get_exemptions(dataPath, errors)
 	artists = set([])
 	artistList = []
 	artistLowerList = []
@@ -293,7 +293,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 		counter += 1
 		percent = round((counter/songProgressCount)*100.0)
 		if percent > lastPercent:
-			print(padOrEllipsize(f"Looking for duplicates: {percent}% done", 119), end="\r")
+			print(pad_or_ellipsize(f"Looking for duplicates: {percent}% done", 119), end="\r")
 			lastPercent = percent
 		for songCollection in songDict.values():
 			if len(songCollection)>1:
@@ -302,15 +302,15 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 		if not song.artist in artists:
 			artists.add(song.artist)
 			artistList.append(song.artist)
-			artistLowerList.append(song.lowerArtist)
+			artistLowerList.append(song.lower_artist)
 	for artist in artists:
 		firstletter = artist[0]
 		if firstletter.isalpha() and firstletter.islower():
-			if not isExemptFromLowerCaseCheck(artist):
+			if not is_exempt_from_lower_case_check(artist):
 				error = f"Artist \"{artist}\" is not capitalised."
 				songErrors.append(error)
 		if artist.startswith("The "):
-			if artist[4:] in artists and not isExemptFromTheCheck(artist):
+			if artist[4:] in artists and not is_exempt_from_the_check(artist):
 				error = f"Artist \"{artist}\" has a non-The variant."
 				songErrors.append(error)
 	artistCount = len(artistList)
@@ -328,7 +328,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 			bit1 = artist[0:ampersandFirstIndex]
 			bit2 = artist[ampersandFirstIndex+3:]
 			if bit2 != bit1:
-				if not isExemptFromReversalCheck(bit1, bit2):
+				if not is_exempt_from_reversal_check(bit1, bit2):
 					reverseCheck = bit2+" & "+bit1
 					if reverseCheck in artists:
 						error = f"Artist \"{artist}\" also appears as \"{reverseCheck}\"."
@@ -337,7 +337,7 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 			counter += 1
 			percent = round((counter/artistProgressCount)*100.0)
 			if percent > lastPercent:
-				print(padOrEllipsize(f"Analyzing artists: {percent}% done", 119), end="\r")
+				print(pad_or_ellipsize(f"Analyzing artists: {percent}% done", 119), end="\r")
 				lastPercent = percent
 			compareArtist = artistList[j]
 			compareArtistLower = artistLowerList[j]
@@ -350,20 +350,20 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 	for i in range(0, songCount):
 		songFile = files[i]
 		songTitle = songFile.title
-		songTitleLower = songFile.lowerTitle
+		songTitleLower = songFile.lower_title
 		firstletter = songTitle[0]
 		if firstletter.isalpha() and firstletter.islower():
-			if not isExemptFromLowerCaseCheck(songTitle):
+			if not is_exempt_from_lower_case_check(songTitle):
 				error = f"Title \"{songTitle}\" is not capitalised."
 				songErrors.append(error)
 		for j in range(i+1, songCount):
 			counter += 1
 			percent = round((counter/songProgressCount)*100.0)
 			if percent > lastPercent:
-				print(padOrEllipsize(f"Analyzing song titles (simple analysis): {percent}% done", 119), end="\r")
+				print(pad_or_ellipsize(f"Analyzing song titles (simple analysis): {percent}% done", 119), end="\r")
 				lastPercent = percent
 			compareTitle = files[j].title
-			compareTitleLower = files[j].lowerTitle
+			compareTitleLower = files[j].lower_title
 			if songTitle != compareTitle:
 				if songTitleLower == compareTitleLower:
 					error = f"Title \"{songTitle}\" has a case variation: \"{compareTitle}\"."
@@ -376,12 +376,12 @@ def analyzeFileSet(files,dictionary,fullanalysis,songErrors,duplicates):
 			counter += 1
 			percent = round((counter/songProgressCount)*100.0)
 			if percent > lastPercent:
-				print(padOrEllipsize(f"Analyzing song titles (complex analysis): {percent}% done"), end="\r")
+				print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done"), end="\r")
 				lastPercent = percent
 			keys = list(songDict.keys())
 			for i in range(0, len(keys)):
 				for j in range(i+1, len(keys)):
-					if not isExemptFromSimilarityCheck(keys[i], keys[j]):
+					if not is_exempt_from_similarity_check(keys[i], keys[j]):
 						similarityCalc = similarity(keys[i], keys[j])
 						if similarityCalc < 1.0 and similarityCalc > 0.9:
 							error = f"Title \"{keys[i]}\" looks very similar to \"{keys[j]}\"."
@@ -449,7 +449,7 @@ def analyzeFilesPerCategory(full,songErrors,duplicates,files,dictionary,dupFilen
 	global errors
 	dups=[]
 	errs=[]
-	print(padOrEllipsize(f"Analyzing {descr} files...", 119))
+	print(pad_or_ellipsize(f"Analyzing {descr} files...", 119))
 	analyzeFileSet(files,dictionary,full,errs,dups)
 	duplicates.extend(dups)
 	songErrors.extend(errs)
@@ -522,7 +522,7 @@ def scanFiles(filePaths,scanFileFunction,secondaryFileCollection):
 	ignoredFiles=[]
 	for filePath in filePaths:
 		for root, _, files in walk(filePath):
-			print(padOrEllipsize(f"Scanning {root}", 119), end="\r")
+			print(pad_or_ellipsize(f"Scanning {root}", 119), end="\r")
 			for file in files:
 				scanFileFunction(root,file,scannedFiles,secondaryFileCollection,filenameErrors,ignoredFiles)
 	return scannedFiles,filenameErrors,ignoredFiles
@@ -571,7 +571,7 @@ def buildSongLists(params):
 		analyzeFiles(fullanalyze,songErrors,duplicates)
 		anythingToReport = anythingToReport or any(songErrors) or any(duplicates)
 	if anythingToReport:
-		scanCompleteMessage=padOrEllipsize("Scan complete.", 119)
+		scanCompleteMessage=pad_or_ellipsize("Scan complete.", 119)
 		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
 		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(filenameErrors)}")
 		print(f"{Fore.GREEN}{Style.BRIGHT}Ignored files:{Style.RESET_ALL} {len(ignoredFiles)}")
@@ -641,6 +641,32 @@ def getSettings(configPath):
 		raise Exception("Failed to parse YAML configuration.")
 	raise Exception("{defaultConfigFilename} not found.")
 
+def createDriver(config, errors):
+	driverConfig=config.get("driver")
+	if driverConfig is None:
+		errors.append("No 'driver' section in configuration file.")
+	else:
+		driverClassString=driverConfig.get("class")
+		if driverClassString is None or driverClassString=="":
+			errors.append("No driver class specified in configuration file.")
+		else:
+			driverSpecificConfig=driverConfig.get(driverClassString)
+			if driverSpecificConfig is None:
+				errors.append("No driver-specific config section found in configuration file.")
+			else:
+				components = driverClassString.split('.')
+				if len(components)<3:
+					errors.append("Driver class string should be in the format 'packagename.modulename.classname'")
+				else:
+					upperBound=len(components)-1
+					package=components[0]
+					module=".".join(components[1:upperBound])
+					className=components[upperBound]
+					module = importlib.import_module(module, package)
+					driverClass = getattr(module, className)
+					return driverClass(driverSpecificConfig, errors)
+	return None
+
 # Main execution loop
 clear()
 configPath=defaultConfigFilename
@@ -659,7 +685,7 @@ if not path.isdir(dataPath):
 if path.exists(requestsFilename):
 	remove(requestsFilename)
 
-driver=WinampDriver(config.get("winamp"), errors)
+driver=createDriver(config, errors)
 
 buildSongLists([])
 state = State(driver, tempDataPath, karaokeFiles, errors)

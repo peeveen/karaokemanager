@@ -53,9 +53,14 @@ music:
   # can also permanently add items to this file during runtime with the
   # "cue,[title],add" command.
   backgroundMusicPlaylistFilename: BackgroundMusicPlaylist.txt
-# Settings for Winamp. Note that if you're using Pacemaker for key changes,
-# you should manually configure it to reset when the song changes (see
-# Pacemaker options dialog).
-winamp:
-  # Path to Winamp executable
-  exe: C:\\Program files (x86)\\Winamp\\winamp.exe
+# Settings for the KJ app driver.
+driver:
+  class: karaokemanagerwinampdriver.winamp_driver.WinampDriver
+  # Create a section with the same name as the driver class to put the driver-
+  # specific configuration in.
+  karaokemanagerwinampdriver.winamp_driver.WinampDriver:
+    # Settings for Winamp. Note that if you're using Pacemaker for key changes,
+    # you should manually configure it to reset when the song changes (see
+    # Pacemaker options dialog).
+    # Path to Winamp executable
+    exe: C:\\Program files (x86)\\Winamp\\winamp.exe

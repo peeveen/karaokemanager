@@ -7,30 +7,30 @@ class SongList:
 		self.name = name
 		self.songs = []
 
-	def writeToStateFile(self, file):
+	def write_to_state_file(self, file):
 		file.writelines(self.name+"\n")
 		for song in self.songs:
-			song.writeToStateFile(file)
+			song.write_to_state_file(file)
 
-	def writeToQueueFile(self, file):
+	def write_to_queue_file(self, file):
 		if len(self.songs) == 0:
 			indent = "\t"
 		else:
 			indent = ""
 		file.writelines(indent+self.name+"\n")
 
-	def getSongIndexFromID(self, id, endAllowed, errors):
+	def get_song_index_from_id(self, id, end_allowed, errors):
 		if id.isdigit():
-			songIndex = int(id)
-			if songIndex <= 0 or songIndex > len(self.songs):
+			song_index = int(id)
+			if song_index <= 0 or song_index > len(self.songs):
 				errors.append(f"Song index out of bounds: it must be between 1 and {len(self.songs)}")
 				return None
-			return songIndex-1
+			return song_index-1
 		id = id.lower()
 		if len(self.songs) > 0:
 			if id == "next" or id == "n":
 				return 0
-			if endAllowed:
+			if end_allowed:
 				if id == "end" or id == "e":
 					return len(self.songs)+1
 		matches = []
@@ -45,16 +45,16 @@ class SongList:
 			return None
 		return matches[0]
 
-	def moveSong(self, songToMoveID, songToMoveBeforeID, errors):
-		matchedSongToMoveIndex = self.getSongIndexFromID(songToMoveID, False, errors)
-		if not matchedSongToMoveIndex is None:
-			matchedSongToMoveBeforeIndex = self.getSongIndexFromID(songToMoveBeforeID, True, errors)
-			if not matchedSongToMoveBeforeIndex is None:
-				songToMove = self.songs[matchedSongToMoveIndex]
-				del self.songs[matchedSongToMoveIndex]
-				self.insertSong(matchedSongToMoveBeforeIndex, songToMove)
+	def move_song(self, song_to_move_id, song_to_move_before_id, errors):
+		matched_song_to_move_index = self.get_song_index_from_id(song_to_move_id, False, errors)
+		if not matched_song_to_move_index is None:
+			matched_song_to_move_before_index = self.get_song_index_from_id(song_to_move_before_id, True, errors)
+			if not matched_song_to_move_before_index is None:
+				song_to_move = self.songs[matched_song_to_move_index]
+				del self.songs[matched_song_to_move_index]
+				self.insert_song(matched_song_to_move_before_index, song_to_move)
 
-	def insertSong(self, position, song):
+	def insert_song(self, position, song):
 		self.songs.insert(position, song)
 
 
