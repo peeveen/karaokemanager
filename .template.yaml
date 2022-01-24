@@ -59,8 +59,5 @@ driver:
   # Create a section with the same name as the driver class to put the driver-
   # specific configuration in.
   karaokemanagerwinampdriver.winamp_driver.Driver:
-    # Settings for Winamp. Note that if you're using Pacemaker for key changes,
-    # you should manually configure it to reset when the song changes (see
-    # Pacemaker options dialog).
     # Path to Winamp executable
     exe: C:\\Program files (x86)\\Winamp\\winamp.exe
