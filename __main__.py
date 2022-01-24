@@ -390,15 +390,10 @@ def analyze_file_set(files,dictionary,fullanalysis,songErrors,duplicates):
 
 # Checks two strings for similarity.
 def similarity(s1, s2):
-	longer = s1
-	shorter = s2
-	if len(s1) < len(s2):
-		longer = s2
-		shorter = s1
-	longerLength = len(longer)
+	longerLength = max(len(s1),len(s2))
 	if longerLength == 0:
 		return 1.0
-	return (longerLength - levenshtein(longer, shorter)) / longerLength
+	return (longerLength - levenshtein(s1, s2)) / longerLength
 
 # Thread that periodically writes a random karaoke suggestion to a file.
 def random_song_suggestion_generator_thread():
