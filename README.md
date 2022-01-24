@@ -28,7 +28,7 @@ Currently, one driver exists, for Winamp, the 90s music player for Windows. If y
 If you want to create a driver for your favourite karaoke player, create a Python class that exposes two methods:
 
 ```
-	def __init__(self, config, errors)
+	def __init__(self, config)
 	def play_karaoke_file(self, karaoke_file, key_change, errors)
 ```
 
@@ -36,6 +36,7 @@ If you want to create a driver for your favourite karaoke player, create a Pytho
 - `karaoke_file` is the path to the file that should be played
 - `key_change `is a numeric value that tells you how many semitones the pitch of the track should be shifted.
 - `errors` is a list to which you should append any error messages that KaraokeManager will display to the user.
+- The constructor should raise an exception if there is a problem.
 
 Create a package containing this code, install it, and then set the driver->class value in the KaraokeManager config file to point to your class.
 
