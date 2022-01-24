@@ -344,7 +344,7 @@ class State:
 						if not singer is None:
 							songIndex = singer.getSongIndexFromID(params[1], False, errors)
 							if not songIndex is None:
-								singer.songs[songIndex].keyChange = keyChangeStr
+								singer.songs[songIndex].keyChange = keyChangeValue
 								return newState
 		return self
 
@@ -383,7 +383,7 @@ def getKaraokeFileFromPath(path, karaokeFiles):
 
 # Parses a keychange string.
 def getKeyChangeValue(keyChange, errors):
-	if not keyChange is None:
+	if not keyChange is None and not keyChange=="0":
 		if len(keyChange) == 2:
 			if keyChange[0] == '+' or keyChange[0] == '-':
 				value = keyChange[1:2]
