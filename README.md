@@ -20,7 +20,7 @@ Command-line karaoke session management utility, driving Winamp.
 
 This utility was created so that it could work with any karaoke player. For it to "drive" the player, you need to provide it with a driver.
 
-Currently, one driver exists, for Winamp, the 90s music player for Windows. You should install that first with `pip`.
+Currently, one driver exists, for Winamp, the 90s music player for Windows. If you want to use that driver, you should install it first with `pip`.
 
 - [PyPI link](https://pypi.org/project/karaokemanagerwinampdriver/)
 - [GitHub link](https://github.com/peeveen/karaokemanagerwinampdriver)
