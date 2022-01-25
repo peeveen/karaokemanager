@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from colorama import Fore, Style
 
 # List of commands as enums
 class Severity(Enum):

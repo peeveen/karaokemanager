@@ -2,6 +2,7 @@ from time import sleep
 from colorama import Fore, Style
 import sys
 from commands import CommandType, parse_command
+from exemptions import Exemptions
 from state import State
 from library import Library
 from karaoke_file import KaraokeFile
@@ -65,14 +66,14 @@ def cue_song(params, config, music_files, feedback):
 				with open(config.paths.requests_filename, mode="a", encoding="utf-8") as f:
 					f.write(song.path+"\n")
 			except PermissionError:
-				errors.append(Error("Failed to write to requests file."))
+				feedback.append(Error("Failed to write to requests file."))
 			if len(params)>1:
 				if params[1]=="a" or params[1]=="add":
 					try:
 						with open(config.paths.background_music_list_path, mode="a", encoding="utf-8") as f:
 							f.write(f"{song.artist} - {song.title}\n")
 					except PermissionError:
-						errors.append(Error("Failed to append to background music playlist file."))
+						feedback.append(Error("Failed to append to background music playlist file."))
 
 # Prints the app header
 def show_header(library):
@@ -126,33 +127,33 @@ def process_command(command, state, config, library):
 	elif command.command_type == CommandType.QUIT:
 		return None
 	elif command.command_type == CommandType.ADD:
-		state = state.add(command.params, library.karaoke_files, errors)
+		state = state.add(command.params, library.karaoke_files, feedback)
 	elif command.command_type == CommandType.INSERT:
-		state = state.insert(command.params, library.karaoke_files, errors)
+		state = state.insert(command.params, library.karaoke_files, feedback)
 	elif command.command_type == CommandType.MOVE:
-		state = state.move(command.params, errors)
+		state = state.move(command.params, feedback)
 	elif command.command_type == CommandType.DELETE:
-		state = state.delete(command.params, errors)
+		state = state.delete(command.params, feedback)
 	elif command.command_type == CommandType.LIST:
-		state = state.list(command.params, errors)
+		state = state.list(command.params, feedback)
 	elif command.command_type == CommandType.UNDO:
-		state = state.undo(errors)
+		state = state.undo(feedback)
 	elif command.command_type == CommandType.REDO:
-		state = state.redo(errors)
+		state = state.redo(feedback)
 	elif command.command_type == CommandType.SCAN:
-		library.build_song_lists(command.params, config, errors)
+		library.build_song_lists(command.params, config, feedback)
 	elif command.command_type == CommandType.ZAP:
 		state = state.clear()
 	elif command.command_type == CommandType.NAME:
-		state = state.rename_singer(command.params, errors)
+		state = state.rename_singer(command.params, feedback)
 	elif command.command_type == CommandType.PLAY:
-		state = state.play(command.params, True, config.driver, errors)
+		state = state.play(command.params, True, config.driver, feedback)
 	elif command.command_type == CommandType.FILLER:
-		state = state.play(command.params, False, errors)
+		state = state.play(command.params, False, feedback)
 	elif command.command_type == CommandType.KEY:
-		state = state.change_song_key(command.params, errors)
+		state = state.change_song_key(command.params, feedback)
 	elif command.command_type == CommandType.CUE:
-		cue_song(command.params, config, library.music_files, errors)
+		cue_song(command.params, config, library.music_files, feedback)
 	elif command.command_type == CommandType.SEARCH:
 		show_song_list(command.params[0], library.karaoke_files, False)
 	elif command.command_type == CommandType.MUSIC_SEARCH:
@@ -160,50 +161,75 @@ def process_command(command, state, config, library):
 	return state
 
 # Asks the user for a command, and parses it
-def get_command():
+def get_command(feedback):
 	try:
 		command = input(":")
 	except EOFError:
 		pass
 	command = command.strip()
 	if len(command) > 0:
-		parsedCommand = parse_command(command, errors)
-		return parsedCommand
+		parsed_command, command_string = parse_command(command, feedback)
+		if parsed_command is None:
+			feedback.append(Error(f"Unknown command: \"{command_string}\""))
+		return parsed_command
 	return None
 
-# Shows any errors from the previous command
-def show_errors(errors):
-	for error in errors:
-		error.print()
+def show_library_report(library):
+	if any(library.unparseable_filenames) or any(library.missing_bgm_playlist_entries) or any(library.karaoke_analysis_results) or any(library.music_analysis_results) or any(library.karaoke_duplicates) or any (library.music_duplicates):
+		scanCompleteMessage=pad_or_ellipsize("Scan complete.", 119)
+		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
+		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(library.unparseable_filenames)}")
+		print(f"{Fore.GREEN}{Style.BRIGHT}Ignored files:{Style.RESET_ALL} {len(library.ignored_files)}")
+		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(library.karaoke_analysis_results)+len(library.music_analysis_results)}")
+		print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} {len(library.karaoke_duplicates)+len(library.music_duplicates)}")
+		print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} {len(library.missing_bgm_playlist_entries)}")
+		try:
+			input("Press Enter to continue ...")
+		except EOFError:
+			pass
+
+# Shows any info/errors from the previous command
+def show_feedback(feedback):
+	for message in feedback:
+		message.print()
 
 # Main execution loop
 clear()
+
 configPath=DEFAULT_CONFIG_FILENAME
 if len(sys.argv)>1:
 	configPath=sys.argv[1]
+
 try:
 	config=Config(configPath)
 except Exception as e:
 	print(f"{Fore.RED}Error parsing the configuration file: {e}{Style.RESET_ALL}")
 	exit(1)
 
-errors=[]
-library = Library(config, errors)
-state = State(config, library, errors)
+try:
+	exemptions=Exemptions(config)
+except Exception as e:
+	print(f"{Fore.RED}Error reading an exemptions file: {e}{Style.RESET_ALL}")
+	exit(1)
+
+feedback=[]
+library = Library(config, exemptions, feedback)
+show_library_report(library)
+state = State(config, library, feedback)
 while True:
 	clear()
-	state.save(errors)
+	state.save(feedback)
 	show_header(library)
 	print()
 	show_singers(state)
 	print()
 	show_songs(state)
 	print()
-	show_errors(errors)
-	errors=[]
+	show_feedback(feedback)
+	feedback=[]
 	print(
 		f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
-	command = get_command()
+	command = get_command(feedback)
 	if not command is None:
 		state=process_command(command, state, config, library)
 		if state is None:

@@ -1,4 +1,5 @@
 from os import path
+from error import Error
 
 class Exemptions:
 	# Contents of the similarity exemptions file (a list of TwoPartExemption objects)
@@ -10,11 +11,11 @@ class Exemptions:
 	# Contents of the "the" exemptions file (a list of strings)
 	the_exemptions=set([])
 
-	def __init__(self,config, errors):
-		get_lower_case_exemptions(config.paths.lower_case_exemptions)
-		get_reversal_exemptions(config.paths.reversal_exemptions, errors)
-		get_the_exemptions(config.paths.the_exemptions)
-		get_similarity_exemptions(config.paths.similarity_exemptions, errors)
+	def __init__(self,config):
+		self.reversal_exemptions=get_items_from_data_text_file(config.paths.reversal_exemptions,parse_reversal_exemption)
+		self.the_exemptions=set(get_items_from_data_text_file(config.paths.the_exemptions,parse_simple_exemption,None))
+		self.similarity_exemptions=get_items_from_data_text_file(config.paths.similarity_exemptions,parse_similarity_exemption)
+		self.lower_case_exemptions=get_items_from_data_text_file(config.paths.lower_case_exemptions,parse_simple_exemption,None)
 
 	def is_exempt_from_reversal_check(self,artist1, artist2):
 		for reversalExemption in self.reversal_exemptions:
@@ -48,26 +49,25 @@ class TwoPartExemption:
 	def matches(self, part1, part2):
 		return (self.part1 == part1 and self.part2 == part2) or (self.part1 == part2 and self.part2 == part1)
 
-def parse_two_part_exemption(line, errors, creatorFunc, exemptionType):
+def parse_two_part_exemption(line, creatorFunc, exemptionType):
 	line = line.strip()
 	if len(line) > 0:
 		bits = line.split("\t")
 		if len(bits) == 2:
 			return creatorFunc(bits[0], bits[1])
 		else:
-			errors.append(Error(f"Could not parse {exemptionType} exemption: {line}"))
-			return None
+			raise Exception(f"Could not parse {exemptionType} exemption: {line}")
 
 def create_two_part_exemption(part1,part2):
 	return TwoPartExemption(part1,part2)
 
-def parse_reversal_exemption(line, errors):
-	return parse_two_part_exemption(line,errors, create_two_part_exemption, "reversal")
+def parse_reversal_exemption(line):
+	return parse_two_part_exemption(line, create_two_part_exemption, "reversal")
 
-def parse_similarity_exemption(line, errors):
-	return parse_two_part_exemption(line,errors, create_two_part_exemption, "similarity")
+def parse_similarity_exemption(line):
+	return parse_two_part_exemption(line, create_two_part_exemption, "similarity")
 
-def parse_simple_exemption(line,errors):
+def parse_simple_exemption(line):
 	return line.strip()
 
 def read_lines_from_data_text_file(full_path):
@@ -76,21 +76,8 @@ def read_lines_from_data_text_file(full_path):
 			return f.readlines()
 	return []
 
-def get_items_from_data_text_file(path,parserFunction,errors):
+def get_items_from_data_text_file(path,parserFunction):
 	lines=read_lines_from_data_text_file(path)
-	items=list(map(lambda line: parserFunction(line,errors),lines))
+	items=list(map(lambda line: parserFunction(line),lines))
 	items=list(filter(lambda item: not item is None, items))
 	return items
-
-def get_reversal_exemptions(path, errors):
-	reversal_exemptions=get_items_from_data_text_file(path,parse_reversal_exemption,errors)
-
-def get_the_exemptions(path):
-	theExemptionsList=get_items_from_data_text_file(path,parse_simple_exemption,None)
-	the_exemptions = set(theExemptionsList)
-
-def get_similarity_exemptions(path, errors):
-	similarity_exemptions=get_items_from_data_text_file(path,parse_similarity_exemption,errors)
-
-def get_lower_case_exemptions(path):
-	lower_case_exemptions=get_items_from_data_text_file(path,parse_simple_exemption,None)

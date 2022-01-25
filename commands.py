@@ -74,7 +74,7 @@ def parse_command_type(command_string):
 	return None
 
 # Parses the given command line into a Command object
-def parse_command(command_string, errors):
+def parse_command(command_string):
 	# Special case = search
 	if command_string[0:2] == "??":
 		return Command(CommandType.MUSIC_SEARCH, [command_string[2:]])
@@ -85,7 +85,6 @@ def parse_command(command_string, errors):
 		command_bits[i] = command_bit.strip()
 	command_type = parse_command_type(command_bits[0])
 	if command_type is None:
-		errors.append(Error(f"Unknown command: \"{command_bits[0]}\""))
-		return None
+		return None, command_bits[0]
 	else:
-		return Command(command_type, command_bits[1:])
+		return Command(command_type, command_bits[1:]), command_bits[0]

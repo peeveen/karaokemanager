@@ -111,9 +111,9 @@ class Paths:
 	# Name of file that we will write to when we find possible duplicates of karaoke files.
 	KARAOKE_DUPLICATES_FILENAME = "KaraokeDuplicates.txt"
 	# Name of file that we will write to when we find karaoke files with artist and/or title problems.
-	KARAOKE_ERRORS_FILENAME = "KaraokeArtistAndTitlesProblems.txt"
+	KARAOKE_ANALYSIS_RESULTS_FILENAME = "KaraokeAnalysisResults.txt"
 	# Name of file that we will write to when we find music files with artist and/or title problems.
-	MUSIC_ERRORS_FILENAME = "MusicArtistAndTitleProblems.txt"
+	MUSIC_ANALYSIS_RESULTS_FILENAME = "MusicAnalysisResults.txt"
 	# Name of file that we will write to with a list of files that we ignored
 	IGNORED_FILES_FILENAME = "IgnoredFiles.txt"
 	# File that we write a random song suggestion to periodically.
@@ -151,8 +151,8 @@ class Paths:
 	music_duplicates=None
 	filename_errors=None
 	missing_playlist_entries=None
-	karaoke_errors=None
-	music_errors=None
+	karaoke_analysis_results=None
+	music_analysis_results=None
 	ignored_files=None
 	reversal_exemptions=None
 	the_exemptions=None
@@ -180,8 +180,8 @@ class Paths:
 		self.bgm_manifest = path.join(temp_data_path, self.BACKGROUND_MUSIC_MANIFEST_FILENAME)
 		self.music_duplicates=path.join(data_path,self.MUSIC_DUPLICATES_FILENAME)
 		self.karaoke_duplicates=path.join(data_path,self.KARAOKE_DUPLICATES_FILENAME)
-		self.music_errors=path.join(data_path,self.MUSIC_ERRORS_FILENAME)
-		self.karaoke_errors=path.join(data_path,self.KARAOKE_ERRORS_FILENAME)
+		self.music_analysis_results=path.join(data_path,self.MUSIC_ANALYSIS_RESULTS_FILENAME)
+		self.karaoke_analysis_results=path.join(data_path,self.KARAOKE_ANALYSIS_RESULTS_FILENAME)
 		self.random_suggestion = path.join(temp_data_path, self.SONG_SUGGESTION_FILENAME)
 		self.filename_errors=path.join(data_path,self.FILENAME_ERRORS_FILENAME)
 		self.missing_playlist_entries=path.join(data_path,self.MISSING_PLAYLIST_ENTRIES_FILENAME)

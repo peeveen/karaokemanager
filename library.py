@@ -26,8 +26,7 @@ class Library:
 	music_dictionary = defaultdict()
 	# Files that were ignored
 	ignored_files=[]
-	karaoke_filename_errors=[]
-	music_filename_errors=[]
+	# Full manifest of BGM paths
 	bgm_manifest=[]
 	# Thread that will periodically choose a random karaoke file and write it to the suggestion file.
 	suggestor_thread = None
@@ -35,10 +34,21 @@ class Library:
 	stop_suggestions = False
 	# All our lovely exemption info
 	exemptions=None
+	# BGM playlist entries that did not match a music file.
+	missing_bgm_playlist_entries=[]
+	# Filenames that matched an extension of a pattern, but failed the regex.
+	unparseable_filenames=[]
+	# Duplicates found during a scan
+	karaoke_duplicates=[]
+	music_duplicates=[]
+	# Analysis errors found during a quick or full analysis of the fileset
+	karaoke_analysis_results=[]
+	# Analysis errors found during a quick or full analysis of the fileset
+	music_analysis_results=[]
 
-	def __init__(self,config,errors):
-		self.exemptions = Exemptions(config, errors)
-		self.build_song_lists([],config,errors)
+	def __init__(self,config,exemptions,errors):
+		self.exemptions = exemptions
+		self.build_song_lists([],config,errors)		
 
 	# Reads the background music playlist into memory
 	def get_background_music_playlist(self, config):
@@ -64,58 +74,91 @@ class Library:
 			self.music_dictionary.setdefault(songFile.artist, defaultdict()).setdefault(
 				songFile.title, []).append(songFile)
 
-	# Scans the files in one or more folders.
-	def scan_files(self,filePaths,filePatterns,scanFileFunction,secondaryFileCollection):
-		scannedFiles=[]
-		filenameErrors=[]
-		ignoredFiles=[]
-		for filePath in filePaths:
-			for root, _, files in walk(filePath):
-				print(pad_or_ellipsize(f"Scanning {root}", 119), end="\r")
-				for file in files:
-					scanFileFunction(root,file,filePatterns,scannedFiles,secondaryFileCollection,filenameErrors,ignoredFiles)
-		return scannedFiles,filenameErrors,ignoredFiles
-
 	# Builds the karaoke and music lists by analysing folder contents.
-	def build_song_lists(self, params, config, errors):
-		self.bgm_playlist=self.get_background_music_playlist(config)
+	def build_song_lists(self, params, config, feedback):
+		bgm_playlist=self.get_background_music_playlist(config)
+
+		def create_karaoke_file(path, groupMap):
+			vendor=groupMap["vendor"]
+			if vendor is None:
+				vendor="UNKNOWN"
+			return KaraokeFile(path,groupMap["artist"],groupMap["title"],vendor)
+
+		def create_music_file(path, groupMap):
+			return MusicFile(path,groupMap["artist"],groupMap["title"])
+
+		def parse_filename(filePath, filename, patterns, fileBuilder):
+			nameWithoutExtension, extension = path.splitext(filename)
+			extension=extension.strip('.')
+			validPatterns=list(filter(lambda pattern: pattern.extension_matches(extension), patterns))
+			if any(validPatterns):
+				for pattern in validPatterns:
+					groupMap = pattern.parse_filename(nameWithoutExtension)
+					if any(groupMap):
+						file=fileBuilder(filePath, groupMap)
+						if not file is None:
+							return file
+				self.unparseable_filenames.append(filename)
+			else:
+				self.ignored_files.append(filename)
+			return None
+
+		# Tries to parse a karaoke file, adding it to a collection if successful.
+		def scan_karaoke_file(root, file):
+			karaokeFile = parse_filename(path.join(root,file), file, config.karaoke_patterns, create_karaoke_file)
+			if not karaokeFile is None:
+				self.karaoke_files.append(karaokeFile)
+
+		# Tries to parse a music file, adding it to a collection if successful.
+		def scan_music_file(root, file):
+			full_path = path.join(root,file)
+			musicFile = parse_filename(full_path, file, config.music_patterns, create_music_file)
+			if not musicFile is None:
+				fileWithoutExtension = file[0:-4]
+				if fileWithoutExtension in self.bgm_playlist:
+					self.bgm_manifest.append(full_path)
+					bgm_playlist.remove(fileWithoutExtension)
+				self.music_files.append(musicFile)
+
+		# Scans the files in one or more folders.
+		def scan_files(filePaths,scanFileFunction):
+			for filePath in filePaths:
+				for root, _, files in walk(filePath):
+					print(pad_or_ellipsize(f"Scanning {root}", 119), end="\r")
+					for file in files:
+						scanFileFunction(root,file)
+
 		self.backgroundMusic=[]
-		self.karaokeFilenameErrors=[]
-		self.musicFilenameErrors=[]
 		self.ignoredFiles=[]
 		self.karaoke_files=[]
 		self.music_files=[]
-		quickanalyze = any(params) and (params[0] == "quickanalyze" or params[0] == "q")
-		fullanalyze = any(params) and (params[0] == "analyze" or params[0] == "a")
-		self.karaoke_files, karaokeFilenameErrors, ignoredKaraokeFiles=self.scan_files(config.paths.karaoke,config.karaoke_patterns,self.scan_karaoke_file,None)
-		self.music_files, musicFilenameErrors, ignoredMusicFiles=self.scan_files(config.paths.music,config.music_patterns,self.scan_music_file,self.bgm_manifest)
-		filenameErrors = karaokeFilenameErrors+musicFilenameErrors
-		ignoredFiles = ignoredKaraokeFiles+ignoredMusicFiles
-		write_text_file(filenameErrors,config.paths.filename_errors,errors)
-		write_text_file(ignoredFiles,config.paths.ignored_files,errors)
+		quick_analysis = any(params) and (params[0] == "quickanalyze" or params[0] == "q")
+		full_analysis = any(params) and (params[0] == "analyze" or params[0] == "a")
+		scan_files(config.paths.karaoke,scan_karaoke_file)
+		scan_files(config.paths.music,scan_music_file)
 		# Whatever's left in the background music playlist will be missing files.
-		write_text_file(self.bgm_playlist,config.paths.missing_playlist_entries,errors)
-		write_text_file(self.bgm_manifest,config.paths.bgm_manifest,errors)
+		self.missing_bgm_playlist_entries=bgm_playlist
+
 		self.build_dictionaries()
 		self.start_suggestion_thread(config)
-		anythingToReport = any(filenameErrors) or any(self.bgm_playlist)
-		duplicates=[]
-		songErrors=[]
-		if quickanalyze or fullanalyze:
-			self.analyze_files(config,fullanalyze,songErrors,duplicates,errors)
-			anythingToReport = anythingToReport or any(songErrors) or any(duplicates)
-		if anythingToReport:
-			scanCompleteMessage=pad_or_ellipsize("Scan complete.", 119)
-			print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
-			print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(filenameErrors)}")
-			print(f"{Fore.GREEN}{Style.BRIGHT}Ignored files:{Style.RESET_ALL} {len(ignoredFiles)}")
-			print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(songErrors)}")
-			print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} {len(duplicates)}")
-			print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} {len(self.bgm_playlist)}")
-			try:
-				input("Press Enter to continue ...")
-			except EOFError:
-				pass
+
+		self.music_duplicates=[]
+		self.karaoke_duplicates=[]
+		self.karaoke_analysis_results=[]
+		self.music_analysis_results=[]
+		if quick_analysis or full_analysis:
+			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(self.karaoke_files,self.karaoke_dictionary, full_analysis)
+			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(self.music_files,self.music_dictionary, full_analysis)
+
+		write_text_file(self.unparseable_filenames,config.paths.filename_errors,feedback)
+		write_text_file(self.ignored_files,config.paths.ignored_files,feedback)
+		write_text_file(bgm_playlist,config.paths.missing_playlist_entries,feedback)
+		write_text_file(self.bgm_manifest,config.paths.bgm_manifest,feedback)
+		write_text_file(self.karaoke_duplicates,config.paths.karaoke_duplicates,feedback)
+		write_text_file(self.music_duplicates,config.paths.music_duplicates,feedback)
+		write_text_file(self.karaoke_analysis_results,config.paths.karaoke_analysis_results,feedback)
+		write_text_file(self.music_analysis_results,config.paths.music_analysis_results,feedback)
+
 		# Helper function for dictionary sorting.
 		def getMusicFileKey(file):
 			return file.artist
@@ -163,7 +206,7 @@ class Library:
 			sleep(0.5)
 
 	# Scans a list of files for potential duplicates, bad filenames, etc.
-	def analyze_file_set(self,config,files,dictionary,fullanalysis,songErrors,duplicates,errors):
+	def analyze_file_set(self,files,dictionary,fullanalysis,songErrors,duplicates):
 		# Checks two strings for similarity.
 		def similarity(s1, s2):
 			longerLength = max(len(s1),len(s2))
@@ -171,7 +214,6 @@ class Library:
 				return 1.0
 			return (longerLength - levenshtein(s1, s2)) / longerLength
 
-		self.get_exemptions(config, errors)
 		artists = set([])
 		artistList = []
 		artistLowerList = []
@@ -278,72 +320,28 @@ class Library:
 								songErrors.append(error)
 
 	# Analyse set of files for duplicates, filename errors, etc, and report results.
-	def analyze_files_per_category(self,config,full,songErrors,duplicates,files,dictionary,dupPath,errPath,descr,errors):
-		dups=[]
-		errs=[]
+	def analyze_files_per_category(self,full,songErrors,duplicates,files,dictionary,dupPath,errPath,descr,feedback):
 		print(pad_or_ellipsize(f"Analyzing {descr} files...", 119))
-		self.analyze_file_set(config,files,dictionary,full,errs,dups,errors)
+		return self.analyze_file_set(files, dictionary, full)
 		duplicates.extend(dups)
-		songErrors.extend(errs)
+		songErrors.extend(errs)		
 		try:
 			with open(dupPath, mode="w", encoding="utf-8") as f:
 				for duplicate in dups:
 					f.writelines(duplicate.artist+" - "+duplicate.title+"\n")
 		except PermissionError:
-			errors.append(Error("Failed to write duplicates file."))
+			feedback.append(Error("Failed to write duplicates file."))
 		try:
 			with open(errPath, mode="w", encoding="utf-8") as f:
 				for songError in errs:
 					f.writelines(f"{songError}\n")
 		except PermissionError:
-			errors.append(Error("Failed to write artist or title errors file."))
+			feedback.append(Error("Failed to write artist or title errors file."))
 
 	# Analyses both the karaoke and music file sets for errors.
-	def analyze_files(self,config,full,songErrors,duplicates,errors):
-		self.analyze_files_per_category(config,full,songErrors,duplicates,self.music_files,self.music_dictionary,config.paths.music_duplicates,config.paths.music_errors,"music",errors)
-		self.analyze_files_per_category(config,full,songErrors,duplicates,self.karaoke_files,self.karaoke_dictionary,config.paths.karaoke_duplicates,config.paths.karaoke_errors,"karaoke",errors)
-
-	def create_karaoke_file(self,path, groupMap):
-		vendor=groupMap["vendor"]
-		if vendor is None:
-			vendor="UNKNOWN"
-		return KaraokeFile(path,groupMap["artist"],groupMap["title"],vendor)
-
-	def create_music_file(self,path, groupMap):
-		return MusicFile(path,groupMap["artist"],groupMap["title"])
-
-	def parse_filename(self,filePath, filename, patterns, errors, ignored, fileBuilder):
-		nameWithoutExtension, extension = path.splitext(filename)
-		extension=extension.strip('.')
-		validPatterns=list(filter(lambda pattern: pattern.extension_matches(extension), patterns))
-		if any(validPatterns):
-			for pattern in validPatterns:
-				groupMap = pattern.parse_filename(nameWithoutExtension)
-				if any(groupMap):
-					file=fileBuilder(filePath, groupMap)
-					if not file is None:
-						return file
-			errors.append(filename)
-		else:
-			ignored.append(filename)
-		return None
-
-	# Tries to parse a karaoke file, adding it to a collection if successful.
-	def scan_karaoke_file(self,root, file,filePatterns,fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
-		karaokeFile = self.parse_filename(path.join(root,file), file, filePatterns, filenameErrors, ignoredFiles, self.create_karaoke_file)
-		if not karaokeFile is None:
-			fileCollection.append(karaokeFile)
-
-	# Tries to parse a music file, adding it to a collection if successful.
-	def scan_music_file(self,root, file,filePatterns,fileCollection, secondaryFileCollection, filenameErrors, ignoredFiles):
-		full_path = path.join(root,file)
-		musicFile = self.parse_filename(full_path, file, filePatterns, filenameErrors, ignoredFiles, self.create_music_file)
-		if not musicFile is None:
-			fileWithoutExtension = file[0:-4]
-			if fileWithoutExtension in self.bgm_playlist:
-				secondaryFileCollection.append(full_path)
-				self.bgm_playlist.remove(fileWithoutExtension)
-			fileCollection.append(musicFile)
+	def analyze_files(self,config,full,songErrors,duplicates,feedback):
+		self.analyze_files_per_category(full,songErrors,duplicates,self.music_files,self.music_dictionary,config.paths.music_duplicates,config.paths.music_errors,"music",feedback)
+		self.analyze_files_per_category(full,songErrors,duplicates,self.karaoke_files,self.karaoke_dictionary,config.paths.karaoke_duplicates,config.paths.karaoke_errors,"karaoke",feedback)
 
 # Writes a list of strings to a text file.
 def write_text_file(itemList,path,errors):
