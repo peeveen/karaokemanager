@@ -18,13 +18,13 @@ Command-line karaoke session management utility, driving Winamp.
 
 # Installation
 
-Just run 'pip install karaokemanager'.
+Just run `pip install karaokemanager`.
 
 # To run it
 
 - First, install a driver! (see below)
 - Copy the [YAML template](.template.yaml) to ".yaml", and modify it with your own settings.
-- Then just run `py -m karaokemanager`
+- Then just run `karaokemanager` or `py -m karaokemanager`
 - If you hate the config filename, rename it, and provide it as an argument to the program, e.g. `py -m karaokemanager renamed_file.yml`
 
 # Drivers
@@ -42,8 +42,8 @@ Anyway, if you want to use the Winamp driver, you should install it first with `
 If you want to create a driver for your favourite karaoke player, create a Python class that exposes two methods:
 
 ```
-	def __init__(self, config)
-	def play_karaoke_file(self, karaoke_file, key_change, errors)
+def __init__(self, config)
+def play_karaoke_file(self, karaoke_file, key_change, errors)
 ```
 
 - `config` is the pyyaml object that represents the driver-specific section from the KaraokeManager config file.
