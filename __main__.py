@@ -4,13 +4,14 @@ import sys
 from commands import CommandType, parse_command
 from exemptions import Exemptions
 from state import State
-from library import Library
+from library import Library, LibraryAnalysisType
 from karaoke_file import KaraokeFile
 from singer_column import SingerColumn
 from song_selector import select_song, show_song_list
 from display_functions import clear, pad_or_ellipsize
 from config import Config
 from error import Error, Info
+from suggestion_generator import SuggestionGenerator
 
 # Default YAML config filename
 DEFAULT_CONFIG_FILENAME='.yaml'
@@ -119,6 +120,33 @@ def show_songs(state):
 			else:
 				print(f"{songIndex}: {song.file.get_song_list_text()}")
 
+def show_library_report(library):
+	if any(library.unparseable_filenames) or any(library.missing_bgm_playlist_entries) or any(library.karaoke_analysis_results) or any(library.music_analysis_results) or any(library.karaoke_duplicates) or any (library.music_duplicates):
+		scanCompleteMessage=pad_or_ellipsize("Scan complete.", 119)
+		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
+		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(library.unparseable_filenames)}")
+		print(f"{Fore.GREEN}{Style.BRIGHT}Ignored files:{Style.RESET_ALL} {len(library.ignored_files)}")
+		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(library.karaoke_analysis_results)+len(library.music_analysis_results)}")
+		print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} {len(library.karaoke_duplicates)+len(library.music_duplicates)}")
+		print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} {len(library.missing_bgm_playlist_entries)}")
+		try:
+			input("Press Enter to continue ...")
+		except EOFError:
+			pass
+
+def parse_library_analysis_type(params):
+	if any(params):
+		if params[0] == "quickanalyze" or params[0] == "q":
+			return LibraryAnalysisType.QUICK
+		if params[0] == "analyze" or params[0] == "a":
+			return LibraryAnalysisType.FULL
+	return LibraryAnalysisType.NONE
+
+def rebuild_library(library, config, analysis_type, feedback):
+	library.build_song_lists(config, analysis_type, feedback)
+	suggestion_generator.start_suggestion_thread(library.karaoke_dictionary)
+	show_library_report(library)
+
 # Processes the given command.
 # Returns true if the command is to quit the app.
 def process_command(command, state, config, library):
@@ -141,7 +169,7 @@ def process_command(command, state, config, library):
 	elif command.command_type == CommandType.REDO:
 		state = state.redo(feedback)
 	elif command.command_type == CommandType.SCAN:
-		library.build_song_lists(command.params, config, feedback)
+		rebuild_library(library, config, parse_library_analysis_type(command.params), feedback)
 	elif command.command_type == CommandType.ZAP:
 		state = state.clear()
 	elif command.command_type == CommandType.NAME:
@@ -174,20 +202,6 @@ def get_command(feedback):
 		return parsed_command
 	return None
 
-def show_library_report(library):
-	if any(library.unparseable_filenames) or any(library.missing_bgm_playlist_entries) or any(library.karaoke_analysis_results) or any(library.music_analysis_results) or any(library.karaoke_duplicates) or any (library.music_duplicates):
-		scanCompleteMessage=pad_or_ellipsize("Scan complete.", 119)
-		print(f"{Fore.WHITE}{Style.BRIGHT}{scanCompleteMessage}")
-		print(f"{Fore.RED}{Style.BRIGHT}Bad filenames:{Style.RESET_ALL} {len(library.unparseable_filenames)}")
-		print(f"{Fore.GREEN}{Style.BRIGHT}Ignored files:{Style.RESET_ALL} {len(library.ignored_files)}")
-		print(f"{Fore.YELLOW}{Style.BRIGHT}Artist/title problems:{Style.RESET_ALL} {len(library.karaoke_analysis_results)+len(library.music_analysis_results)}")
-		print(f"{Fore.CYAN}{Style.BRIGHT}Duplicate files:{Style.RESET_ALL} {len(library.karaoke_duplicates)+len(library.music_duplicates)}")
-		print(f"{Fore.MAGENTA}{Style.BRIGHT}Missing playlist entries:{Style.RESET_ALL} {len(library.missing_bgm_playlist_entries)}")
-		try:
-			input("Press Enter to continue ...")
-		except EOFError:
-			pass
-
 # Shows any info/errors from the previous command
 def show_feedback(feedback):
 	for message in feedback:
@@ -213,9 +227,11 @@ except Exception as e:
 	exit(1)
 
 feedback=[]
-library = Library(config, exemptions, feedback)
-show_library_report(library)
+suggestion_generator=SuggestionGenerator(config)
+library = Library(exemptions)
+rebuild_library(library,config,LibraryAnalysisType.NONE,feedback)
 state = State(config, library, feedback)
+
 while True:
 	clear()
 	state.save(feedback)
@@ -232,7 +248,10 @@ while True:
 	command = get_command(feedback)
 	if not command is None:
 		state=process_command(command, state, config, library)
+		if command.command_type==CommandType.SCAN:
+			suggestion_generator.start_suggestion_thread(library.karaoke_dictionary)
 		if state is None:
 			break
+		
 clear()
-library.stop_suggestion_thread()
+suggestion_generator.stop_suggestion_thread()

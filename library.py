@@ -2,14 +2,18 @@ from collections import defaultdict
 from colorama import Fore, Style
 from textdistance import levenshtein
 from os import path, walk
-import threading
-import random
 from time import sleep
 from display_functions import pad_or_ellipsize
 from karaoke_file import KaraokeFile
 from music_file import MusicFile
-from exemptions import Exemptions
 from error import Error
+from enum import Enum, auto
+
+# How deep should the library analysis be?
+class LibraryAnalysisType(Enum):
+	NONE = auto()
+	QUICK = auto()
+	FULL = auto()
 
 class Library:
 	# Current background music playlist (strings from the BackgroundMusicPlaylist file)
@@ -28,10 +32,6 @@ class Library:
 	ignored_files=[]
 	# Full manifest of BGM paths
 	bgm_manifest=[]
-	# Thread that will periodically choose a random karaoke file and write it to the suggestion file.
-	suggestor_thread = None
-	# Flag to stop the suggestion thread.
-	stop_suggestions = False
 	# All our lovely exemption info
 	exemptions=None
 	# BGM playlist entries that did not match a music file.
@@ -46,9 +46,8 @@ class Library:
 	# Analysis errors found during a quick or full analysis of the fileset
 	music_analysis_results=[]
 
-	def __init__(self,config,exemptions,errors):
+	def __init__(self,exemptions):
 		self.exemptions = exemptions
-		self.build_song_lists([],config,errors)		
 
 	# Reads the background music playlist into memory
 	def get_background_music_playlist(self, config):
@@ -75,7 +74,7 @@ class Library:
 				songFile.title, []).append(songFile)
 
 	# Builds the karaoke and music lists by analysing folder contents.
-	def build_song_lists(self, params, config, feedback):
+	def build_song_lists(self, config, analysis_type, feedback):
 		bgm_playlist=self.get_background_music_playlist(config)
 
 		def create_karaoke_file(path, groupMap):
@@ -128,12 +127,19 @@ class Library:
 					for file in files:
 						scanFileFunction(root,file)
 
+		# Writes a list of strings to a text file.
+		def write_text_file(itemList,path,errors):
+			try:
+				with open(path, mode="w", encoding="utf-8") as f:
+					for item in itemList:
+						f.writelines(f"{item}\n")
+			except PermissionError:
+				errors.append(Error(f"Failed to write to '{path}'."))
+
 		self.backgroundMusic=[]
 		self.ignoredFiles=[]
 		self.karaoke_files=[]
 		self.music_files=[]
-		quick_analysis = any(params) and (params[0] == "quickanalyze" or params[0] == "q")
-		full_analysis = any(params) and (params[0] == "analyze" or params[0] == "a")
 		scan_files(config.paths.karaoke,scan_karaoke_file)
 		scan_files(config.paths.music,scan_music_file)
 		# Whatever's left in the background music playlist will be missing files.
@@ -146,9 +152,11 @@ class Library:
 		self.karaoke_duplicates=[]
 		self.karaoke_analysis_results=[]
 		self.music_analysis_results=[]
-		if quick_analysis or full_analysis:
-			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(self.karaoke_files,self.karaoke_dictionary, full_analysis)
-			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(self.music_files,self.music_dictionary, full_analysis)
+		if analysis_type != LibraryAnalysisType.NONE:
+			print(pad_or_ellipsize(f"Analyzing karaoke files...", 119))
+			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(self.karaoke_files,self.karaoke_dictionary, analysis_type)
+			print(pad_or_ellipsize(f"Analyzing music files...", 119))
+			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(self.music_files,self.music_dictionary, analysis_type)
 
 		write_text_file(self.unparseable_filenames,config.paths.filename_errors,feedback)
 		write_text_file(self.ignored_files,config.paths.ignored_files,feedback)
@@ -165,48 +173,10 @@ class Library:
 		self.music_files.sort(key=getMusicFileKey)
 		self.karaoke_files.sort(key=getMusicFileKey)
 
-	# Function to stop the suggestion thread.
-	def stop_suggestion_thread(self):
-		if not self.suggestor_thread is None:
-			self.stop_suggestions = True
-			self.suggestor_thread.join()
-		self.stop_suggestions = False
-
-	# Function to start the suggestion thread.
-	def start_suggestion_thread(self, config):
-		self.stop_suggestion_thread()
-		suggestor_thread = threading.Thread(
-			target=self.random_song_suggestion_generator_thread, args=[config.paths.random_suggestion,])
-		suggestor_thread.daemon = True
-		suggestor_thread.start()
-
-	# Thread that periodically writes a random karaoke suggestion to a file.
-	def random_song_suggestion_generator_thread(self,path):
-		random.seed()
-		counter = 0
-		while not self.stop_suggestions:
-			if counter == 0:
-				counter = 20
-				if any(self.karaoke_dictionary):
-					artistKeys = list(self.karaoke_dictionary.keys())
-					randomArtistIndex = random.randrange(len(self.karaoke_dictionary))
-					artistString = artistKeys[randomArtistIndex]
-					artistDict = self.karaoke_dictionary[artistString]
-					randomSongIndex = random.randrange(len(artistDict))
-					songKeys = list(artistDict.keys())
-					songString = songKeys[randomSongIndex]
-					suggestionString = f"{artistString}\n{songString}\n"
-					try:
-						with open(path, mode="w", encoding="utf-8") as f:
-							f.writelines(suggestionString)
-					except PermissionError:
-						pass
-			else:
-				counter -= 1
-			sleep(0.5)
-
 	# Scans a list of files for potential duplicates, bad filenames, etc.
-	def analyze_file_set(self,files,dictionary,fullanalysis,songErrors,duplicates):
+	def analyze_file_set(self,files,dictionary,analysis_type):
+		analysis_results=[]
+		duplicates=[]
 		# Checks two strings for similarity.
 		def similarity(s1, s2):
 			longerLength = max(len(s1),len(s2))
@@ -229,7 +199,7 @@ class Library:
 				lastPercent = percent
 			for songCollection in songDict.values():
 				if len(songCollection)>1:
-					duplicates.extend(songCollection[1:])
+					duplicates.extend(map(lambda song: f"{song.artist} - {song.title}", songCollection[1:]))
 		for song in files:
 			if not song.artist in artists:
 				artists.add(song.artist)
@@ -240,11 +210,11 @@ class Library:
 			if firstletter.isalpha() and firstletter.islower():
 				if not self.exemptions.is_exempt_from_lower_case_check(artist):
 					error = f"Artist \"{artist}\" is not capitalised."
-					songErrors.append(error)
+					analysis_results.append(error)
 			if artist.startswith("The "):
 				if artist[4:] in artists and not self.exemptions.is_exempt_from_the_check(artist):
 					error = f"Artist \"{artist}\" has a non-The variant."
-					songErrors.append(error)
+					analysis_results.append(error)
 		artistCount = len(artistList)
 		songCount = len(files)
 		songProgressCount = round((songCount*songCount)/2)
@@ -264,7 +234,7 @@ class Library:
 						reverseCheck = bit2+" & "+bit1
 						if reverseCheck in artists:
 							error = f"Artist \"{artist}\" also appears as \"{reverseCheck}\"."
-							songErrors.append(error)
+							analysis_results.append(error)
 			for j in range(i+1, artistCount):
 				counter += 1
 				percent = round((counter/artistProgressCount)*100.0)
@@ -275,7 +245,7 @@ class Library:
 				compareArtistLower = artistLowerList[j]
 				if artistLower == compareArtistLower and artist != compareArtist:
 					error = f"Artist \"{artist}\" has a case variation: \"{compareArtist}\"."
-					songErrors.append(error)
+					analysis_results.append(error)
 		songProgressCount = round((songCount*songCount)/2)
 		counter = 0
 		lastPercent = -1
@@ -287,7 +257,7 @@ class Library:
 			if firstletter.isalpha() and firstletter.islower():
 				if not self.exemptions.is_exempt_from_lower_case_check(songTitle):
 					error = f"Title \"{songTitle}\" is not capitalised."
-					songErrors.append(error)
+					analysis_results.append(error)
 			for j in range(i+1, songCount):
 				counter += 1
 				percent = round((counter/songProgressCount)*100.0)
@@ -299,11 +269,11 @@ class Library:
 				if songTitle != compareTitle:
 					if songTitleLower == compareTitleLower:
 						error = f"Title \"{songTitle}\" has a case variation: \"{compareTitle}\"."
-						songErrors.append(error)
+						analysis_results.append(error)
 		lastPercent = -1
 		counter = 0
 		songProgressCount = len(dictionary)
-		if fullanalysis:
+		if analysis_type==LibraryAnalysisType.Full:
 			for artist, songDict in dictionary.items():
 				counter += 1
 				percent = round((counter/songProgressCount)*100.0)
@@ -317,37 +287,5 @@ class Library:
 							similarityCalc = similarity(keys[i], keys[j])
 							if similarityCalc < 1.0 and similarityCalc > 0.9:
 								error = f"Title \"{keys[i]}\" looks very similar to \"{keys[j]}\"."
-								songErrors.append(error)
-
-	# Analyse set of files for duplicates, filename errors, etc, and report results.
-	def analyze_files_per_category(self,full,songErrors,duplicates,files,dictionary,dupPath,errPath,descr,feedback):
-		print(pad_or_ellipsize(f"Analyzing {descr} files...", 119))
-		return self.analyze_file_set(files, dictionary, full)
-		duplicates.extend(dups)
-		songErrors.extend(errs)		
-		try:
-			with open(dupPath, mode="w", encoding="utf-8") as f:
-				for duplicate in dups:
-					f.writelines(duplicate.artist+" - "+duplicate.title+"\n")
-		except PermissionError:
-			feedback.append(Error("Failed to write duplicates file."))
-		try:
-			with open(errPath, mode="w", encoding="utf-8") as f:
-				for songError in errs:
-					f.writelines(f"{songError}\n")
-		except PermissionError:
-			feedback.append(Error("Failed to write artist or title errors file."))
-
-	# Analyses both the karaoke and music file sets for errors.
-	def analyze_files(self,config,full,songErrors,duplicates,feedback):
-		self.analyze_files_per_category(full,songErrors,duplicates,self.music_files,self.music_dictionary,config.paths.music_duplicates,config.paths.music_errors,"music",feedback)
-		self.analyze_files_per_category(full,songErrors,duplicates,self.karaoke_files,self.karaoke_dictionary,config.paths.karaoke_duplicates,config.paths.karaoke_errors,"karaoke",feedback)
-
-# Writes a list of strings to a text file.
-def write_text_file(itemList,path,errors):
-	try:
-		with open(path, mode="w", encoding="utf-8") as f:
-			for item in itemList:
-				f.writelines(f"{item}\n")
-	except PermissionError:
-		errors.append(Error(f"Failed to write to '{path}'."))
+								analysis_results.append(error)
+		return duplicates, analysis_results
