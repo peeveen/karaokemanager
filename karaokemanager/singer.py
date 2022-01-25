@@ -1,4 +1,4 @@
-from song_list import SongList
+from karaokemanager.song_list import SongList
 
 # Class describing a singer, and their current list of selected songs.
 class Singer(SongList):

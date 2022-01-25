@@ -3,6 +3,8 @@ __pycache__
 __pycache__/**
 __debug
 __debug/**
-.vscode
-.vscode/**
 .yaml
+build
+dist
+*.egg-info
+build_commands.txt

@@ -1,6 +1,6 @@
-from display_functions import clear, pad_or_ellipsize, SCREEN_HEIGHT
+from karaokemanager.display_functions import clear, pad_or_ellipsize, SCREEN_HEIGHT
 from colorama import Fore, Style
-from music_file import MusicFile
+from karaokemanager.music_file import MusicFile
 
 # Song selector function. Shows the list of "songs" to the user and asks them to pick one,
 # cancel, or enter more text to narrow the search.

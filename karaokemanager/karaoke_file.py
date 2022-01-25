@@ -1,5 +1,5 @@
-from music_file import MusicFile
-from display_functions import pad_or_ellipsize
+from karaokemanager.music_file import MusicFile
+from karaokemanager.display_functions import pad_or_ellipsize
 from colorama import Fore, Style
 
 # Class describing a karaoke file
