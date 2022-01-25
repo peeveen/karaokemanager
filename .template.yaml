@@ -51,7 +51,7 @@ music:
   # write the full paths of the music files that match these background music
   # titles to "KaraokeManager.backgroundMusic.txt" for AutoDJ to work with. You
   # can also permanently add items to this file during runtime with the
-  # "cue,[title],add" command.
+  # "cue,<title>,add" command.
   backgroundMusicPlaylistFilename: BackgroundMusicPlaylist.txt
 # Settings for the KJ app driver.
 driver:
