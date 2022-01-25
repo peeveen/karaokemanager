@@ -1,4 +1,4 @@
-# KaraokeManager
+# Karaoke Manager
 
 Command-line karaoke session management utility, driving Winamp.
 
@@ -31,7 +31,7 @@ Just run `pip install karaokemanager`.
 
 This utility was created so that it could work with any karaoke player. For it to "drive" the player, you need to provide it with a driver.
 
-Currently, one driver exists, for Winamp, the 90s music player for Windows. There are currently no drivers for any Linux apps. If you know
+Currently, one driver exists, for Winamp, the 90s music player for Windows. There are currently no drivers for any Linux apps, and if you know
 of a useable Linux karaoke app, I'm all ears.
 
 Anyway, if you want to use the Winamp driver, you should install it first with `pip install karaokemanagerwinampdriver`.
@@ -46,13 +46,13 @@ def __init__(self, config)
 def play_karaoke_file(self, karaoke_file, key_change, errors)
 ```
 
-- `config` is the [pyyaml](https://github.com/yaml/pyyaml) object that represents the driver-specific section from the KaraokeManager config file.
+- `config` is the [pyyaml](https://github.com/yaml/pyyaml) object that represents the driver-specific section from the YAML config file.
 - `karaoke_file` is the path to the file that should be played
 - `key_change `is a numeric value that tells you how many semitones the pitch of the track should be shifted.
 - `errors` is a list to which you should append any error messages that KaraokeManager will display to the user.
 - The constructor should raise an exception if there is a problem.
 
-Create a package containing this code, install it, and then set the driver->class value in the KaraokeManager config file to point to your class.
+Create a package containing this code, install it, and then set the driver->class value in the YAML config file to point to your class.
 
 ### TODO
 
