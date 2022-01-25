@@ -34,7 +34,7 @@ This utility was created so that it could work with any karaoke player. For it t
 Currently, one driver exists, for Winamp, the 90s music player for Windows. There are currently no drivers for any Linux apps. If you know
 of a useable Linux karaoke app, I'm all ears.
 
-Anyway, if you want to use the Winamp driver, you should install it first with `pip`.
+Anyway, if you want to use the Winamp driver, you should install it first with `pip install karaokemanagerwinampdriver`.
 
 - [PyPI link](https://pypi.org/project/karaokemanagerwinampdriver/)
 - [GitHub link](https://github.com/peeveen/karaokemanagerwinampdriver)
