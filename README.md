@@ -23,7 +23,7 @@ Just run `pip install karaokemanager`.
 # To run it
 
 - First, install a driver! (see below)
-- Copy the [YAML template](.template.yaml) to ".yaml", and modify it with your own settings.
+- Copy the [YAML template](.template.yaml) to `.yaml`, and modify it with your own settings.
 - Then just run `karaokemanager` or `py -m karaokemanager`
 - If you hate the config filename, rename it, and provide it as an argument to the program, e.g. `py -m karaokemanager renamed_file.yml`
 
