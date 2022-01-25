@@ -3,10 +3,10 @@ from colorama import Fore, Style
 from textdistance import levenshtein
 from os import path, walk
 from time import sleep
-from display_functions import pad_or_ellipsize
-from karaoke_file import KaraokeFile
-from music_file import MusicFile
-from error import Error
+from karaokemanager.display_functions import pad_or_ellipsize
+from karaokemanager.karaoke_file import KaraokeFile
+from karaokemanager.music_file import MusicFile
+from karaokemanager.error import Error
 from enum import Enum, auto
 
 # How deep should the library analysis be?
@@ -113,10 +113,11 @@ class Library:
 			full_path = path.join(root,file)
 			musicFile = parse_filename(full_path, file, config.music_patterns, create_music_file)
 			if not musicFile is None:
-				fileWithoutExtension = file[0:-4]
-				if fileWithoutExtension in self.bgm_playlist:
+				name_without_extension, _ = path.splitext(file)
+				name_without_extension=name_without_extension.lower()
+				if name_without_extension in bgm_playlist:
 					self.bgm_manifest.append(full_path)
-					bgm_playlist.remove(fileWithoutExtension)
+					bgm_playlist.remove(name_without_extension)
 				self.music_files.append(musicFile)
 
 		# Scans the files in one or more folders.
@@ -136,17 +137,17 @@ class Library:
 			except PermissionError:
 				errors.append(Error(f"Failed to write to '{path}'."))
 
-		self.backgroundMusic=[]
-		self.ignoredFiles=[]
+		self.bgm_manifest=[]
+		self.ignored_files=[]
 		self.karaoke_files=[]
 		self.music_files=[]
+		self.unparseable_filenames=[]
 		scan_files(config.paths.karaoke,scan_karaoke_file)
 		scan_files(config.paths.music,scan_music_file)
 		# Whatever's left in the background music playlist will be missing files.
 		self.missing_bgm_playlist_entries=bgm_playlist
 
 		self.build_dictionaries()
-		self.start_suggestion_thread(config)
 
 		self.music_duplicates=[]
 		self.karaoke_duplicates=[]
@@ -273,12 +274,12 @@ class Library:
 		lastPercent = -1
 		counter = 0
 		songProgressCount = len(dictionary)
-		if analysis_type==LibraryAnalysisType.Full:
+		if LibraryAnalysisType.FULL == analysis_type:
 			for artist, songDict in dictionary.items():
 				counter += 1
 				percent = round((counter/songProgressCount)*100.0)
 				if percent > lastPercent:
-					print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done"), end="\r")
+					print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done", 119), end="\r")
 					lastPercent = percent
 				keys = list(songDict.keys())
 				for i in range(0, len(keys)):

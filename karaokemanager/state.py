@@ -1,8 +1,9 @@
 from os import path
 from copy import deepcopy
-from singer import Singer
-from song_selector import select_song
-from song import Song
+from karaokemanager.singer import Singer
+from karaokemanager.song_selector import select_song
+from karaokemanager.song import Song
+from karaokemanager.error import Error
 
 # Current state of the app.
 class State:

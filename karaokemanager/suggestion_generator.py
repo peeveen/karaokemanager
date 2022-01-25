@@ -23,10 +23,10 @@ class SuggestionGenerator:
 	# Function to start the suggestion thread.
 	def start_suggestion_thread(self, karaoke_dictionary):
 		self.stop_suggestion_thread()
-		suggestor_thread = threading.Thread(
+		self.suggestor_thread = threading.Thread(
 			target=self.random_song_suggestion_generator_thread, args=[karaoke_dictionary,])
-		suggestor_thread.daemon = True
-		suggestor_thread.start()
+		self.suggestor_thread.daemon = True
+		self.suggestor_thread.start()
 
 	# Thread that periodically writes a random karaoke suggestion to a file.
 	def random_song_suggestion_generator_thread(self,dictionary):

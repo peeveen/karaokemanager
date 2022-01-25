@@ -1,3 +1,5 @@
+from karaokemanager.error import Error
+
 # Class representing the list of songs that a singer has chosen.
 class SongList:
 	name = ''

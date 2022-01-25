@@ -53,6 +53,9 @@ commands = [
 	CommandDefinition(CommandType.MUSIC_SEARCH, "??")
 ]
 
+MUSIC_SEARCH_STRING="??"
+KARAOKE_SEARCH_STRING="?"
+
 # Result of a parsed command
 class Command:
 	command_type = None
@@ -76,10 +79,10 @@ def parse_command_type(command_string):
 # Parses the given command line into a Command object
 def parse_command(command_string):
 	# Special case = search
-	if command_string[0:2] == "??":
-		return Command(CommandType.MUSIC_SEARCH, [command_string[2:]])
-	if command_string[0] == "?":
-		return Command(CommandType.SEARCH, [command_string[1:]])
+	if command_string[0:2] == MUSIC_SEARCH_STRING:
+		return Command(CommandType.MUSIC_SEARCH, [command_string[2:]]), MUSIC_SEARCH_STRING
+	if command_string[0] == KARAOKE_SEARCH_STRING:
+		return Command(CommandType.SEARCH, [command_string[1:]]), KARAOKE_SEARCH_STRING
 	command_bits = command_string.split(',')
 	for i, command_bit in enumerate(command_bits):
 		command_bits[i] = command_bit.strip()

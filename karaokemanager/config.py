@@ -1,7 +1,7 @@
 import yaml
 from os import path, makedirs, remove
 import importlib
-from file_pattern import FilePattern
+from karaokemanager.file_pattern import FilePattern
 
 class Config:
 	karaoke_patterns=[]
@@ -25,7 +25,7 @@ class Config:
 				self.driver=create_driver(config)
 				return
 			raise Exception("Failed to parse YAML configuration.")
-		raise Exception("{config_path} not found.")
+		raise Exception(f"{config_path} not found.")
 
 def create_driver(config):
 	driverConfig=config.get("driver")
@@ -57,7 +57,7 @@ def get_config_string(config, name, required):
 			if len(value)>0:
 				return value
 	if required:
-		raise Exception("No string value found for '{name}' in YAML config file.")
+		raise Exception(f"No string value found for '{name}' in YAML config file.")
 	return None
 
 def get_patterns(config,section):
@@ -76,7 +76,7 @@ def get_paths(config,section,required):
 		if "paths" in section_config:
 			paths=section_config["paths"]
 	if required and not any(paths):
-		raise Exception("No paths defined in '{section}' section")
+		raise Exception(f"No paths defined in '{section}' section")
 	return paths
 
 def is_string_list(l):

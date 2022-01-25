@@ -1,4 +1,4 @@
-from display_functions import pad_or_ellipsize
+from karaokemanager.display_functions import pad_or_ellipsize
 from colorama import Fore, Style
 
 # Class describing a music file

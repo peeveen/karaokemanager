@@ -16,11 +16,25 @@ Command-line karaoke session management utility, driving Winamp.
 - Writes the current list of singers to a file for the [SingersQueue plugin](https://github.com/peeveen/gen_singersQueue) to display.
 - Not just karaoke! There are also commands for adding non-karaoke music tracks to a playlist, for the [AutoDJ plugin](https://github.com/peeveen/gen_autoDJ) to play in-between singers.
 
+# Installation
+
+Just run 'pip install karaokemanager'.
+
+# To run it
+
+- First, install a driver! (see below)
+- Copy the [YAML template](.template.yaml) to ".yaml", and modify it with your own settings.
+- Then just run `py -m karaokemanager`
+- If you hate the config filename, rename it, and provide it as an argument to the program, e.g. `py -m karaokemanager renamed_file.yml`
+
 # Drivers
 
 This utility was created so that it could work with any karaoke player. For it to "drive" the player, you need to provide it with a driver.
 
-Currently, one driver exists, for Winamp, the 90s music player for Windows. If you want to use that driver, you should install it first with `pip`.
+Currently, one driver exists, for Winamp, the 90s music player for Windows. There are currently no drivers for any Linux apps. If you know
+of a useable Linux karaoke app, I'm all ears.
+
+Anyway, if you want to use the Winamp driver, you should install it first with `pip`.
 
 - [PyPI link](https://pypi.org/project/karaokemanagerwinampdriver/)
 - [GitHub link](https://github.com/peeveen/karaokemanagerwinampdriver)
@@ -39,12 +53,6 @@ If you want to create a driver for your favourite karaoke player, create a Pytho
 - The constructor should raise an exception if there is a problem.
 
 Create a package containing this code, install it, and then set the driver->class value in the KaraokeManager config file to point to your class.
-
-# To run it
-
-- Copy the [YAML template](.template.yaml) to ".yaml", and modify it with your own settings.
-- Then either run one of the [batch](KaraokeManager.bat) [files](KaraokeManager.ps1) (these will install dependencies!) or install the dependencies yourself and run `py KaraokeManager.py`
-- If you hate the config filename, rename it, and provide it as an argument to the program, e.g. `py KaraokeManager.py renamed_file.yml`
 
 ### TODO
 
