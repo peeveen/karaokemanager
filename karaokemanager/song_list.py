@@ -61,4 +61,6 @@ class SongList:
 
 	def get_maximum_lengths(self, limit):
 		sliced_songs=self.songs[:limit]
-		return max(map(lambda song: len(song.file.artist), sliced_songs)), max(map(lambda song: len(song.file.title), sliced_songs))
+		if any(sliced_songs):
+			return max(map(lambda song: len(song.file.artist), sliced_songs)), max(map(lambda song: len(song.file.title), sliced_songs))
+		return 0, 0

@@ -35,7 +35,7 @@ class SingerColumn:
 				name_text += f"{Fore.MAGENTA}{Style.NORMAL}"
 			plain_name_text = singer.name
 			name_text += singer.name
-			row_text = f"{index_text}: {name_text}({song_count}){Style.RESET_ALL}"
+			row_text = f"{index_text}: {name_text}{Fore.CYAN}({song_count}){Style.RESET_ALL}"
 			plain_row_text = f"{plain_index_text}: {plain_name_text}({song_count})"
 			size_diff = self.column_width-len(plain_row_text)
 			padding = " "*size_diff

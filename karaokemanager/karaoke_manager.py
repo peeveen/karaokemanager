@@ -161,7 +161,7 @@ class KaraokeManager:
 			# We need to leave room for the song index, plus any key change indicator (and a column separator before that)
 			# The rest of the screen is available for song artist + title
 			max_available_space=self.console_size.columns-(SONG_LIST_INDEX_LENGTH+len(COLUMN_SEPARATOR)+Song.KEY_CHANGE_INDICATOR_LENGTH)
-			combined_length=max_artist_length+max_title_length+1 # space inbetween
+			combined_length=max_artist_length+max_title_length+len(COLUMN_SEPARATOR)
 			# If the longest artist + longest title bigger than the available space? Scale 'em down.
 			if max_available_space<combined_length:
 				reduction_factor=max_available_space/combined_length
@@ -223,7 +223,7 @@ class KaraokeManager:
 		elif command.command_type == CommandType.PLAY:
 			state = state.play(command.params, True, self.config.driver, feedback)
 		elif command.command_type == CommandType.FILLER:
-			state = state.play(command.params, False, feedback)
+			state = state.play(command.params, False, self.config.driver, feedback)
 		elif command.command_type == CommandType.KEY:
 			state = state.change_song_key(command.params, feedback)
 		elif command.command_type == CommandType.CUE:
