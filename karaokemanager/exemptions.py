@@ -4,7 +4,7 @@ class Exemptions:
 	# Contents of the similarity exemptions file (a list of TwoPartExemption objects)
 	similarity_exemptions = []
 	# Contents of the lower case exemptions file (a list of strings)
-	lower_case_exemptions = []
+	capitalized_exemptions = []
 	# Contents of the reversal exemptions file (a list of TwoPartExemption objects)
 	reversal_exemptions = []
 	# Contents of the "the" exemptions file (a list of strings)
@@ -14,7 +14,7 @@ class Exemptions:
 		self.reversal_exemptions=get_items_from_data_text_file(config.paths.reversal_exemptions,parse_reversal_exemption)
 		self.the_exemptions=set(get_items_from_data_text_file(config.paths.the_exemptions,parse_simple_exemption))
 		self.similarity_exemptions=get_items_from_data_text_file(config.paths.similarity_exemptions,parse_similarity_exemption)
-		self.lower_case_exemptions=get_items_from_data_text_file(config.paths.lower_case_exemptions,parse_simple_exemption)
+		self.capitalized_exemptions=get_items_from_data_text_file(config.paths.capitalized_exemptions,parse_simple_exemption)
 
 	def is_exempt_from_reversal_check(self,artist1, artist2):
 		for reversalExemption in self.reversal_exemptions:
@@ -22,8 +22,8 @@ class Exemptions:
 				return True
 		return False
 
-	def is_exempt_from_lower_case_check(self,artist1):
-		for lowerCaseExemption in self.lower_case_exemptions:
+	def is_exempt_from_capitalized_check(self,artist1):
+		for lowerCaseExemption in self.capitalized_exemptions:
 			if lowerCaseExemption in artist1:
 				return True
 		return False

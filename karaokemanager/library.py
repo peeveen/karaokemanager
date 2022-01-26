@@ -155,9 +155,9 @@ class Library:
 		self.music_analysis_results=[]
 		if analysis_type != LibraryAnalysisType.NONE:
 			print(pad_or_ellipsize(f"Analyzing karaoke files...", console_size.columns))
-			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(self.karaoke_files,self.karaoke_dictionary, analysis_type, console_size)
+			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(config,self.karaoke_files,self.karaoke_dictionary, analysis_type, console_size)
 			print(pad_or_ellipsize(f"Analyzing music files...", console_size.columns))
-			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(self.music_files,self.music_dictionary, analysis_type, console_size)
+			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(config,self.music_files,self.music_dictionary, analysis_type, console_size)
 
 		write_text_file(self.unparseable_filenames,config.paths.filename_errors,feedback)
 		write_text_file(self.ignored_files,config.paths.ignored_files,feedback)
@@ -175,7 +175,7 @@ class Library:
 		self.karaoke_files.sort(key=get_music_file_key)
 
 	# Scans a list of files for potential duplicates, bad filenames, etc.
-	def analyze_file_set(self,files,dictionary,analysis_type, console_size):
+	def analyze_file_set(self,config,files,dictionary,analysis_type, console_size):
 		analysis_results=[]
 		duplicates=[]
 		# Checks two strings for similarity.
@@ -192,15 +192,16 @@ class Library:
 		last_percent = -1
 		counter = 0
 		song_progress_count = len(dictionary)
-		for artist, song_dict in dictionary.items():
-			counter += 1
-			percent = round((counter/song_progress_count)*100.0)
-			if percent > last_percent:
-				print(pad_or_ellipsize(f"Looking for duplicates: {percent}% done", console_size.columns), end="\r")
-				last_percent = percent
-			for song_collection in song_dict.values():
-				if len(song_collection)>1:
-					duplicates.extend(map(lambda song: f"{song.artist} - {song.title}", song_collection[1:]))
+		if config.scan_options.duplicates:
+			for artist, song_dict in dictionary.items():
+				counter += 1
+				percent = round((counter/song_progress_count)*100.0)
+				if percent > last_percent:
+					print(pad_or_ellipsize(f"Looking for duplicates: {percent}% done", console_size.columns), end="\r")
+					last_percent = percent
+				for song_collection in song_dict.values():
+					if len(song_collection)>1:
+						duplicates.extend(map(lambda song: f"{song.artist} - {song.title}", song_collection[1:]))
 		for song in files:
 			if not song.artist in artists:
 				artists.add(song.artist)
@@ -208,14 +209,16 @@ class Library:
 				artist_lower_list.append(song.lower_artist)
 		for artist in artists:
 			first_letter = artist[0]
-			if first_letter.isalpha() and first_letter.islower():
-				if not self.exemptions.is_exempt_from_lower_case_check(artist):
-					error = f"Artist \"{artist}\" is not capitalised."
-					analysis_results.append(error)
-			if artist.startswith("The "):
-				if artist[4:] in artists and not self.exemptions.is_exempt_from_the_check(artist):
-					error = f"Artist \"{artist}\" has a non-The variant."
-					analysis_results.append(error)
+			if config.scan_options.capitalized:
+				if first_letter.isalpha() and first_letter.islower():
+					if not self.exemptions.is_exempt_from_capitalized_check(artist):
+						error = f"Artist \"{artist}\" is not capitalised."
+						analysis_results.append(error)
+			if config.scan_options.the:
+				if artist.startswith("The "):
+					if artist[4:] in artists and not self.exemptions.is_exempt_from_the_check(artist):
+						error = f"Artist \"{artist}\" has a non-The variant."
+						analysis_results.append(error)
 		artist_count = len(artist_list)
 		song_count = len(files)
 		song_progress_count = round((song_count*song_count)/2)
@@ -225,28 +228,30 @@ class Library:
 		for i in range(0, artist_count):
 			artist = artist_list[i]
 			artist_lower = artist_lower_list[i]
-			ampersand_first_index = artist.find(" & ")
-			ampersand_last_index = artist.rfind(" & ")
-			if ampersand_first_index != -1 and ampersand_last_index == ampersand_first_index:
-				bit1 = artist[0:ampersand_first_index]
-				bit2 = artist[ampersand_first_index+3:]
-				if bit2 != bit1:
-					if not self.exemptions.is_exempt_from_reversal_check(bit1, bit2):
-						reverse_check = bit2+" & "+bit1
-						if reverse_check in artists:
-							error = f"Artist \"{artist}\" also appears as \"{reverse_check}\"."
-							analysis_results.append(error)
-			for j in range(i+1, artist_count):
-				counter += 1
-				percent = round((counter/artist_progress_count)*100.0)
-				if percent > last_percent:
-					print(pad_or_ellipsize(f"Analyzing artists: {percent}% done", console_size.columns), end="\r")
-					last_percent = percent
-				compare_artist = artist_list[j]
-				compare_artist_lower = artist_lower_list[j]
-				if artist_lower == compare_artist_lower and artist != compare_artist:
-					error = f"Artist \"{artist}\" has a case variation: \"{compare_artist}\"."
-					analysis_results.append(error)
+			if config.scan_options.reversal:
+				ampersand_first_index = artist.find(" & ")
+				ampersand_last_index = artist.rfind(" & ")
+				if ampersand_first_index != -1 and ampersand_last_index == ampersand_first_index:
+					bit1 = artist[0:ampersand_first_index]
+					bit2 = artist[ampersand_first_index+3:]
+					if bit2 != bit1:
+						if not self.exemptions.is_exempt_from_reversal_check(bit1, bit2):
+							reverse_check = bit2+" & "+bit1
+							if reverse_check in artists:
+								error = f"Artist \"{artist}\" also appears as \"{reverse_check}\"."
+								analysis_results.append(error)
+			if config.scan_options.case:
+				for j in range(i+1, artist_count):
+					counter += 1
+					percent = round((counter/artist_progress_count)*100.0)
+					if percent > last_percent:
+						print(pad_or_ellipsize(f"Analyzing artists: {percent}% done", console_size.columns), end="\r")
+						last_percent = percent
+					compare_artist = artist_list[j]
+					compare_artist_lower = artist_lower_list[j]
+					if artist_lower == compare_artist_lower and artist != compare_artist:
+						error = f"Artist \"{artist}\" has a case variation: \"{compare_artist}\"."
+						analysis_results.append(error)
 		song_progress_count = round((song_count*song_count)/2)
 		counter = 0
 		last_percent = -1
@@ -254,39 +259,42 @@ class Library:
 			song_file = files[i]
 			song_title = song_file.title
 			song_title_lower = song_file.lower_title
-			first_letter = song_title[0]
-			if first_letter.isalpha() and first_letter.islower():
-				if not self.exemptions.is_exempt_from_lower_case_check(song_title):
-					error = f"Title \"{song_title}\" is not capitalised."
-					analysis_results.append(error)
-			for j in range(i+1, song_count):
-				counter += 1
-				percent = round((counter/song_progress_count)*100.0)
-				if percent > last_percent:
-					print(pad_or_ellipsize(f"Analyzing song titles (simple analysis): {percent}% done", console_size.columns), end="\r")
-					last_percent = percent
-				compare_title = files[j].title
-				compare_title_lower = files[j].lower_title
-				if song_title != compare_title:
-					if song_title_lower == compare_title_lower:
-						error = f"Title \"{song_title}\" has a case variation: \"{compare_title}\"."
+			if config.scan_options.capitalized:
+				first_letter = song_title[0]
+				if first_letter.isalpha() and first_letter.islower():
+					if not self.exemptions.is_exempt_from_capitalized_check(song_title):
+						error = f"Title \"{song_title}\" is not capitalised."
 						analysis_results.append(error)
+			if config.scan_options.case:
+				for j in range(i+1, song_count):
+					counter += 1
+					percent = round((counter/song_progress_count)*100.0)
+					if percent > last_percent:
+						print(pad_or_ellipsize(f"Analyzing song titles (simple analysis): {percent}% done", console_size.columns), end="\r")
+						last_percent = percent
+					compare_title = files[j].title
+					compare_title_lower = files[j].lower_title
+					if song_title != compare_title:
+						if song_title_lower == compare_title_lower:
+							error = f"Title \"{song_title}\" has a case variation: \"{compare_title}\"."
+							analysis_results.append(error)
 		last_percent = -1
 		counter = 0
 		song_progress_count = len(dictionary)
-		if LibraryAnalysisType.FULL == analysis_type:
-			for artist, song_dict in dictionary.items():
-				counter += 1
-				percent = round((counter/song_progress_count)*100.0)
-				if percent > last_percent:
-					print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done", console_size.columns), end="\r")
-					last_percent = percent
-				keys = list(song_dict.keys())
-				for i in range(0, len(keys)):
-					for j in range(i+1, len(keys)):
-						if not self.exemptions.is_exempt_from_similarity_check(keys[i], keys[j]):
-							similarity_calculation = similarity(keys[i], keys[j])
-							if similarity_calculation < 1.0 and similarity_calculation > 0.9:
-								error = f"Title \"{keys[i]}\" looks very similar to \"{keys[j]}\"."
-								analysis_results.append(error)
+		if config.scan_options.similar:
+			if LibraryAnalysisType.FULL == analysis_type:
+				for artist, song_dict in dictionary.items():
+					counter += 1
+					percent = round((counter/song_progress_count)*100.0)
+					if percent > last_percent:
+						print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done", console_size.columns), end="\r")
+						last_percent = percent
+					keys = list(song_dict.keys())
+					for i in range(0, len(keys)):
+						for j in range(i+1, len(keys)):
+							if not self.exemptions.is_exempt_from_similarity_check(keys[i], keys[j]):
+								similarity_calculation = similarity(keys[i], keys[j])
+								if similarity_calculation < 1.0 and similarity_calculation > 0.9:
+									error = f"Title \"{keys[i]}\" looks very similar to \"{keys[j]}\"."
+									analysis_results.append(error)
 		return duplicates, analysis_results

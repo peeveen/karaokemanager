@@ -8,6 +8,12 @@ dataPath: "C:\\your\\data\\path\\here"
 # other path in case you want to keep that one in a cloud sync folder,
 # or something.
 tempDataPath: "C:\\your\\temp\\data\\path\\here"
+# If this is True, a singer with no remaining songs in their list will still
+# be cycled to the end of the queue so that they don't lose their place (perhaps
+# while choosing another song). If False, then they will be removed from the
+# list, and you'll have to add them back manually if they decide to sing again.
+cycleEmptySingers: True
+
 karaoke:
   # Where you store your karaoke files.
   # List as many paths as you like.
@@ -26,6 +32,7 @@ karaoke:
         regExp: "(.*) - (.*) - (.*)",
         groupNames: [artist, title, vendor],
       }
+
 music:
   # Where you store your music files.
   # List as many paths as you like.
@@ -53,6 +60,7 @@ music:
   # can also permanently add items to this file during runtime with the
   # "cue,<title>,add" command.
   backgroundMusicPlaylistFilename: BackgroundMusicPlaylist.txt
+
 # Settings for the KJ app driver.
 driver:
   class: karaokemanagerwinampdriver.winamp_driver.Driver
@@ -61,3 +69,18 @@ driver:
   karaokemanagerwinampdriver.winamp_driver.Driver:
     # Path to Winamp executable
     exe: C:\\Program files (x86)\\Winamp\\winamp.exe
+
+# Enable/disable scan options.
+scan:
+  # Look for duplicate songs? (artist & title match)
+  duplicates: True
+  # Look for artists or titles with uncapitalized words?
+	capitalized: True
+  # Look for artists where there are "The" and non-"The" variations?
+  the: True
+  # Look for mixed-up duets (where "Chas & Dave" exists, but also "Dave & Chas"?)
+  reversal: True
+  # Look for artists or titles that are only different in case (e.g "Paul McCartney" and "Paul Mccartney")?
+  case: True
+  # Look for similar-looking artists or titles?
+  similar: True
