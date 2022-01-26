@@ -75,7 +75,7 @@ You can also ask Karaoke Manager to perform a deeper analysis of your files with
 To prevent false positives being reported, you can create lists of exemptions (one per line) in text files in `dataPath`:
 
 - The scan will look for duet "reversals", meaning that if you have files by "Chas & Dave", but also some by "Dave & Chas", it'll flag them up. `ReversalExemptions.txt` can contain a list of those that are valid, with the two halves of the pair separated by a tab. Note that, currently, only an ampersand separator is considered.
-- If the scan finds a file by an artist called, for example "The Greatest Band Ever", and also a file by an artist called "Greatest Band Ever", it will flag that up. `TheExemptions.txt` can prevent this by listing either of those values.
+- If the scan finds a file by an artist called, for example "Greatest Band Ever", and also a file by an artist called "_The_ Greatest Band Ever", it will flag that up. `TheExemptions.txt` can prevent this by listing either of those values.
 - The scan will nag you about words in filenames that are not capitalized. `LowerCaseExemptions.txt` can list those are valid (e.g. 'kd lang')
 - The `all` scan will nag your about artists or titles that look very similar. `SimilarityExemptions.txt` can list those that should not be considered. Put both values on the same line, separated by a tab.
 
