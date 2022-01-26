@@ -59,4 +59,6 @@ class SongList:
 	def insert_song(self, position, song):
 		self.songs.insert(position, song)
 
-
+	def get_maximum_lengths(self, limit):
+		sliced_songs=self.songs[:limit]
+		return max(map(lambda song: len(song.file.artist), sliced_songs)), max(map(lambda song: len(song.file.title), sliced_songs))

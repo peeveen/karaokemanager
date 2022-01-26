@@ -1,11 +1,11 @@
-from karaokemanager.display_functions import clear, pad_or_ellipsize, SCREEN_HEIGHT
+from karaokemanager.display_functions import clear
 from colorama import Fore, Style
 from karaokemanager.music_file import MusicFile
 
 # Song selector function. Shows the list of "songs" to the user and asks them to pick one,
 # cancel, or enter more text to narrow the search.
-def select_song(searchString, songs):
-	return show_song_list(searchString, songs, True)
+def select_song(searchString, songs, console_size):
+	return show_song_list(searchString, songs, True, console_size)
 
 # Asks the user to choose a song from the displayed list, and awaits a valid
 # response.
@@ -40,10 +40,10 @@ def get_song_choice(message, options, blank_allowed, selection_allowed):
 				return song_num
 
 # Displays the list of songs and optionally prompts for a response.
-def show_song_list(search_string, files, selection_allowed):
+def show_song_list(search_string, files, selection_allowed, console_size):
 	search_again = True
 	if selection_allowed:
-		optional_selection_text = ", song number to select,"
+		optional_selection_text = ", song # to select,"
 	else:
 		optional_selection_text = ""
 	while search_again:
@@ -67,13 +67,13 @@ def show_song_list(search_string, files, selection_allowed):
 			index_string = f"{i+1}"
 			padding = (3-len(index_string))*" "
 			index_string = padding+index_string
-			print(f"{Fore.YELLOW}{Style.BRIGHT}{index_string}{Style.RESET_ALL}: {option.get_option_text()}")
+			print(f"{Fore.YELLOW}{Style.BRIGHT}{index_string}{Style.RESET_ALL}: {option.get_option_text(console_size.columns-5)}")
 			shown_count += 1
 			total_shown_count += 1
-			if shown_count == SCREEN_HEIGHT-2 or i == len(options)-1:
+			if shown_count == console_size.lines-2 or i == len(options)-1:
 				print(f"Showing results {Fore.WHITE}{Style.BRIGHT}{start_count}-{start_count+(shown_count-1)}{Style.RESET_ALL} of {Fore.WHITE}{Style.BRIGHT}{len(options)}{Style.RESET_ALL} for {Fore.YELLOW}{Style.BRIGHT}\"{search_string}\"{Style.RESET_ALL}.")
 				if len(options) > total_shown_count:
-					song_number = get_song_choice(f"Press Enter for more, x to cancel{optional_selection_text} or more text to refine the search criteria: ", options, True, selection_allowed)
+					song_number = get_song_choice(f"Press Enter for more, or type x to cancel{optional_selection_text} or additional search text: ", options, True, selection_allowed)
 					if song_number is None:
 						return None
 					elif song_number == "":
@@ -93,7 +93,7 @@ def show_song_list(search_string, files, selection_allowed):
 				except EOFError:
 					pass
 				return None
-			song_number = get_song_choice("Enter song number, or X to cancel, or more text to add to the search criteria: ", options, False, selection_allowed)
+			song_number = get_song_choice("Enter a song # to select, x to cancel, or additional search text: ", options, False, selection_allowed)
 			if song_number is None:
 				return None
 			elif isinstance(song_number, MusicFile):
