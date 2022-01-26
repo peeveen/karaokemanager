@@ -86,7 +86,7 @@ class Library:
 		def create_music_file(path, group_map):
 			return MusicFile(path,group_map["artist"],group_map["title"])
 
-		def parse_filename(path, filename, patterns, file_builder):
+		def parse_filename(file_path, filename, patterns, file_builder):
 			name_without_extension, extension = path.splitext(filename)
 			extension=extension.strip('.')
 			valid_patterns=list(filter(lambda pattern: pattern.extension_matches(extension), patterns))
@@ -94,7 +94,7 @@ class Library:
 				for pattern in valid_patterns:
 					group_map = pattern.parse_filename(name_without_extension)
 					if any(group_map):
-						file=file_builder(path, group_map)
+						file=file_builder(file_path, group_map)
 						if not file is None:
 							return file
 				self.unparseable_filenames.append(filename)
