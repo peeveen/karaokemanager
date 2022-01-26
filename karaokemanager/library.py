@@ -74,7 +74,7 @@ class Library:
 				songFile.title, []).append(songFile)
 
 	# Builds the karaoke and music lists by analysing folder contents.
-	def build_song_lists(self, config, analysis_type, feedback):
+	def build_song_lists(self, config, analysis_type, console_size, feedback):
 		bgm_playlist=self.get_background_music_playlist(config)
 
 		def create_karaoke_file(path, groupMap):
@@ -121,10 +121,10 @@ class Library:
 				self.music_files.append(musicFile)
 
 		# Scans the files in one or more folders.
-		def scan_files(filePaths,scanFileFunction):
+		def scan_files(filePaths, scanFileFunction):
 			for filePath in filePaths:
 				for root, _, files in walk(filePath):
-					print(pad_or_ellipsize(f"Scanning {root}", 119), end="\r")
+					print(pad_or_ellipsize(f"Scanning {root}", console_size.columns), end="\r")
 					for file in files:
 						scanFileFunction(root,file)
 
@@ -154,10 +154,10 @@ class Library:
 		self.karaoke_analysis_results=[]
 		self.music_analysis_results=[]
 		if analysis_type != LibraryAnalysisType.NONE:
-			print(pad_or_ellipsize(f"Analyzing karaoke files...", 119))
-			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(self.karaoke_files,self.karaoke_dictionary, analysis_type)
-			print(pad_or_ellipsize(f"Analyzing music files...", 119))
-			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(self.music_files,self.music_dictionary, analysis_type)
+			print(pad_or_ellipsize(f"Analyzing karaoke files...", console_size.columns))
+			self.karaoke_duplicates, self.karaoke_analysis_results=self.analyze_file_set(self.karaoke_files,self.karaoke_dictionary, analysis_type, console_size)
+			print(pad_or_ellipsize(f"Analyzing music files...", console_size.columns))
+			self.music_duplicates, self.music_analysis_results=self.analyze_file_set(self.music_files,self.music_dictionary, analysis_type, console_size)
 
 		write_text_file(self.unparseable_filenames,config.paths.filename_errors,feedback)
 		write_text_file(self.ignored_files,config.paths.ignored_files,feedback)
@@ -175,7 +175,7 @@ class Library:
 		self.karaoke_files.sort(key=getMusicFileKey)
 
 	# Scans a list of files for potential duplicates, bad filenames, etc.
-	def analyze_file_set(self,files,dictionary,analysis_type):
+	def analyze_file_set(self,files,dictionary,analysis_type, console_size):
 		analysis_results=[]
 		duplicates=[]
 		# Checks two strings for similarity.
@@ -196,7 +196,7 @@ class Library:
 			counter += 1
 			percent = round((counter/songProgressCount)*100.0)
 			if percent > lastPercent:
-				print(pad_or_ellipsize(f"Looking for duplicates: {percent}% done", 119), end="\r")
+				print(pad_or_ellipsize(f"Looking for duplicates: {percent}% done", console_size.columns), end="\r")
 				lastPercent = percent
 			for songCollection in songDict.values():
 				if len(songCollection)>1:
@@ -240,7 +240,7 @@ class Library:
 				counter += 1
 				percent = round((counter/artistProgressCount)*100.0)
 				if percent > lastPercent:
-					print(pad_or_ellipsize(f"Analyzing artists: {percent}% done", 119), end="\r")
+					print(pad_or_ellipsize(f"Analyzing artists: {percent}% done", console_size.columns), end="\r")
 					lastPercent = percent
 				compareArtist = artistList[j]
 				compareArtistLower = artistLowerList[j]
@@ -263,7 +263,7 @@ class Library:
 				counter += 1
 				percent = round((counter/songProgressCount)*100.0)
 				if percent > lastPercent:
-					print(pad_or_ellipsize(f"Analyzing song titles (simple analysis): {percent}% done", 119), end="\r")
+					print(pad_or_ellipsize(f"Analyzing song titles (simple analysis): {percent}% done", console_size.columns), end="\r")
 					lastPercent = percent
 				compareTitle = files[j].title
 				compareTitleLower = files[j].lower_title
@@ -279,7 +279,7 @@ class Library:
 				counter += 1
 				percent = round((counter/songProgressCount)*100.0)
 				if percent > lastPercent:
-					print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done", 119), end="\r")
+					print(pad_or_ellipsize(f"Analyzing song titles (complex analysis): {percent}% done", console_size.columns), end="\r")
 					lastPercent = percent
 				keys = list(songDict.keys())
 				for i in range(0, len(keys)):

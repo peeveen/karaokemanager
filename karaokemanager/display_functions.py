@@ -1,7 +1,6 @@
 from os import name, system
 
-# Maximum number of lines to use
-SCREEN_HEIGHT = 30
+COLUMN_SEPARATOR="  "
 
 # Pads the given string with spaces to make it reach the desired length.
 # If it is already too long, it will be truncated and ellipsised.
