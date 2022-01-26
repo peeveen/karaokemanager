@@ -9,7 +9,7 @@ Command-line karaoke session management utility.
 - Maintains a list of singers and their selected songs, key changes, etc.
 - Easily add/delete/move singers and songs with short, simple commands. No mouse required.
 - Fast undo & redo functionality for fat finger syndrome.
-- Singers maintain their position in the queue, even if they currently have no songs cued up.
+- Singers can maintain their position in the queue, even if they currently have no songs cued up.
 - Heavy OCD rating.
   - Enforces correctly formatted karaoke and music filenames.
   - Can analyze your library for duplicates, bad capitalization, similar-looking titles, missing "The" prefixes, etc (lists of analysis exemptions can be created).
@@ -72,12 +72,15 @@ On startup, Karaoke Manager will scan your karaoke and music paths for files. If
 
 You can also ask Karaoke Manager to perform a deeper analysis of your files with the `scan` command. This command will analyse your files, looking for duplicates, bad casing, inconsistencies, etc. The `scan,quick` command will perform this basic checking, but `scan,all` will go a bit further and report similar-looking titles as potential duplicates.
 
+The various parts of the scan can be enabled/disabled in the `scan` section in the YAML configuration file.
+
 To prevent false positives being reported, you can create lists of exemptions (one per line) in text files in `dataPath`:
 
 - The scan will look for duet "reversals", meaning that if you have files by "Chas & Dave", but also some by "Dave & Chas", it'll flag them up. `ReversalExemptions.txt` can contain a list of those that are valid, with the two halves of the pair separated by a tab. Note that, currently, only an ampersand separator is considered.
 - If the scan finds a file by an artist called, for example "Greatest Band Ever", and also a file by an artist called "_The_ Greatest Band Ever", it will flag that up. `TheExemptions.txt` can prevent this by listing either of those values.
 - The scan will nag you about artists or titles containing words that are not capitalized. `CapitalizedExemptions.txt` can list those are valid (e.g. 'kd lang')
 - The `all` scan will nag your about artists or titles that look very similar (though only by comparing artist with artists, and titles with titles). `SimilarityExemptions.txt` can list those that should not be considered. Put both values on the same line, separated by a tab.
+- The scan will nag you about artists that are identical apart from case (e.g. "Paul McCartney" and "Paul Mccartney"), but exemptions are not currently supported for this part of the scan.
 
 # Like It?
 
