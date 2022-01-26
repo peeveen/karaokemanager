@@ -161,12 +161,12 @@ class State:
 				return new_state
 		return self
 
-	def add_song_for_singer(self, singer_id, song_title, key_change, index, karaoke_files, errors):
+	def add_song_for_singer(self, singer_id, song_title, key_change, index, karaoke_files, console_size, errors):
 		key_change_value = get_key_change_value(key_change, errors)
 		if key_change_value != -99:
 			matched_singer = self.get_singer_from_id(singer_id, False, True, errors)
 			if not matched_singer is None:
-				karaoke_song = select_song(song_title, karaoke_files)
+				karaoke_song = select_song(song_title, karaoke_files, console_size)
 				if not karaoke_song is None:
 					if index == -1:
 						index = len(matched_singer.songs)
@@ -176,12 +176,12 @@ class State:
 					return new_state
 		return self
 
-	def insert_song_for_singer(self, singer_id, song_id, song_title, key_change, karaoke_files, errors):
+	def insert_song_for_singer(self, singer_id, song_id, song_title, key_change, karaoke_files, console_size, errors):
 		matched_singer = self.get_singer_from_id(singer_id, False, True, errors)
 		if not matched_singer is None:
 			matched_song_index = matched_singer.get_song_index_from_id(song_id, True, errors)
 			if not matched_song_index is None:
-				return self.add_song_for_singer(singer_id, song_title, key_change, matched_song_index, karaoke_files, errors)
+				return self.add_song_for_singer(singer_id, song_title, key_change, matched_song_index, karaoke_files, console_size, errors)
 		return self
 
 	def move_song(self, singer_id, song_to_move_id, song_to_move_before_id, errors):
@@ -197,7 +197,7 @@ class State:
 					return new_state
 		return self
 
-	def add(self, params, karaoke_files, errors):
+	def add(self, params, karaoke_files, console_size, errors):
 		param_count = len(params)
 		if param_count == 0:
 			errors.append(Error("Not enough arguments. Expected name of new singer, or existing singer name/index."))
@@ -207,10 +207,10 @@ class State:
 			key_change = None
 			if param_count > 2:
 				key_change = params[2]
-			return self.add_song_for_singer(params[0], params[1], key_change, -1, karaoke_files, errors)
+			return self.add_song_for_singer(params[0], params[1], key_change, -1, karaoke_files, console_size, errors)
 		return self
 
-	def insert(self, params, karaoke_files, errors):
+	def insert(self, params, karaoke_files, console_size, errors):
 		param_count = len(params)
 		if param_count < 2:
 			errors.append(Error("Not enough arguments. Expected name of new singer, or existing singer name/index."))
@@ -220,7 +220,7 @@ class State:
 			keyChange = None
 			if param_count > 3:
 				keyChange = params[3]
-			return self.insert_song_for_singer(params[0], params[1], params[2], keyChange, karaoke_files, errors)
+			return self.insert_song_for_singer(params[0], params[1], params[2], keyChange, karaoke_files, console_size, errors)
 		return self
 
 	def move(self, params, errors):
@@ -379,7 +379,7 @@ def get_key_change_value(key_change, errors):
 				value = key_change[1:2]
 				if value.isdigit():
 					int_value = int(value)
-					if int_value < 6 and int_value > 0:
+					if int_value <= Song.MAX_KEY_CHANGE and int_value > 0:
 						if key_change[0] == '-':
 							return -int_value
 						return int_value
