@@ -88,5 +88,5 @@ If you like this, and/or use it commercially, please consider throwing some coin
 
 # TODO
 
-- More customization (disable/enable scanning options, don't cycle "empty" singers)
+- More customization.
 - More code comments.
