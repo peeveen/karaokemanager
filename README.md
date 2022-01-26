@@ -54,6 +54,10 @@ def play_karaoke_file(self, karaoke_file, key_change, errors)
 
 Create a package containing this code, install it, and then set the driver->class value in the YAML config file to point to your class.
 
+### Like It?
+
+If you like this, and/or use it commercially, please consider throwing some coins my way via PayPal, at steven.fullhouse@gmail.com, or [buy me a coffee](https://www.buymeacoffee.com/peeveen).
+
 ### TODO
 
 - More customization.
