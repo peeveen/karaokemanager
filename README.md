@@ -1,6 +1,6 @@
 # Karaoke Manager
 
-Command-line karaoke session management utility, driving Winamp.
+Command-line karaoke session management utility.
 
 ![KaraokeManager1](/media/karaokeManagerScreenshot1.png?raw=true)
 
