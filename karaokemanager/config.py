@@ -8,6 +8,8 @@ class Config:
 	music_patterns=[]
 	paths = None
 	driver = None
+	scan_options = None
+	cycle_empty_singers=True
 
 	def __init__(self, config_path):
 		if path.isfile(config_path):
@@ -15,12 +17,17 @@ class Config:
 			if not config is None:
 				self.paths=Paths(config)
 
+				scan_options_section=config.get("scan")
+				self.scan_options=ScanOptions(scan_options_section)
+
 				self.karaoke_patterns=get_patterns(config,"karaoke")
 				if not any(self.karaoke_patterns):
 					raise Exception("No karaoke file patterns defined.")
 				self.music_patterns=get_patterns(config,"music")
 				if any(self.paths.music) and not any(self.music_patterns):
 					raise Exception("No music file patterns defined.")
+
+				self.cycle_empty_singers=read_boolean_from_config(config, "cycleEmptySingers", True)
 
 				self.driver=create_driver(config)
 				return
@@ -137,7 +144,7 @@ class Paths:
 	THE_EXEMPTIONS_FILENAME = "TheExemptions.txt"
 	# Normally, we want artist names and song titles to be capitalised. However, some annoyances
 	# exist (e.g. "k.d. lang"). List them in this file to make them exempt from challenge.
-	LOWER_CASE_EXEMPTIONS_FILENAME = "LowerCaseExemptions.txt"
+	CAPITALIZED_EXEMPTIONS_FILENAME = "CapitalizedExemptions.txt"
 	# If we find two artist names or song titles that look INCREDIBLY similar, we flag them as
 	# potential duplicates with an unintentional typo. However, sometimes this yields false positives.
 	# List them in this file to get rid of them, with both values separated by a tab.
@@ -156,7 +163,7 @@ class Paths:
 	ignored_files=None
 	reversal_exemptions=None
 	the_exemptions=None
-	lower_case_exemptions=None
+	capitalized_exemptions=None
 	similarity_exemptions=None
 
 	def __init__(self, config):
@@ -190,7 +197,7 @@ class Paths:
 		self.singers_queue=path.join(temp_data_path,self.SINGERS_QUEUE_FILENAME)
 		self.reversal_exemptions=path.join(data_path,self.REVERSAL_EXEMPTIONS_FILENAME)
 		self.the_exemptions=path.join(data_path,self.THE_EXEMPTIONS_FILENAME)
-		self.lower_case_exemptions=path.join(data_path,self.LOWER_CASE_EXEMPTIONS_FILENAME)
+		self.capitalized_exemptions=path.join(data_path,self.CAPITALIZED_EXEMPTIONS_FILENAME)
 		self.similarity_exemptions=path.join(data_path,self.SIMILARITY_EXEMPTIONS_FILENAME)
 
 		self.karaoke=get_paths(config, "karaoke", True)
@@ -198,3 +205,31 @@ class Paths:
 
 		if path.exists(self.requests):
 			remove(self.requests)
+
+class ScanOptions:
+	capitalized=True
+	duplicates=True
+	similar=True
+	the=True
+	reversal=True
+	case=True
+
+	def __init__(self, config):
+		if config is None:
+			return
+		self.duplicates=read_boolean_from_config(config,"duplicates",True)
+		self.capitalized=read_boolean_from_config(config,"capitalized",True)
+		self.similar=read_boolean_from_config(config,"similar",True)
+		self.the=read_boolean_from_config(config,"the",True)
+		self.reversal=read_boolean_from_config(config,"reversal",True)
+		self.reversal=read_boolean_from_config(config,"case",True)
+
+def read_boolean_from_config(config,property,default):
+	val=config.get(property)
+	if val is None:
+		return default
+	if isinstance(val,bool):
+		return val
+	if not isinstance(val, str):
+		return default
+	return val.lower() in ["true","t","yes","y","on","1"]

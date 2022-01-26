@@ -220,10 +220,8 @@ class KaraokeManager:
 			state = state.clear()
 		elif command.command_type == CommandType.NAME:
 			state = state.rename_singer(command.params, feedback)
-		elif command.command_type == CommandType.PLAY:
-			state = state.play(command.params, True, self.config.driver, feedback)
-		elif command.command_type == CommandType.FILLER:
-			state = state.play(command.params, False, self.config.driver, feedback)
+		elif command.command_type == CommandType.PLAY or command.command_type == CommandType.FILLER:
+			state = state.play(command.params, command.command_type == CommandType.PLAY, self.config, feedback)
 		elif command.command_type == CommandType.KEY:
 			state = state.change_song_key(command.params, feedback)
 		elif command.command_type == CommandType.CUE:

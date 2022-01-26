@@ -338,7 +338,7 @@ class State:
 								return new_state
 		return self
 
-	def play(self, params, cycle_queue, driver, errors):
+	def play(self, params, cycle_queue, config, errors):
 		if len(params) > 0:
 			song = params[0]
 		else:
@@ -350,11 +350,12 @@ class State:
 			if not song_to_play_index is None:
 				song = next_singer.songs[song_to_play_index]
 				file_to_start = next_singer.songs[song_to_play_index].file.path
+				del next_singer.songs[song_to_play_index]
 				if cycle_queue:
 					new_state.singers.remove(next_singer)
-					new_state.singers.append(next_singer)
-				del next_singer.songs[song_to_play_index]
-				driver.play_karaoke_file(file_to_start, song.key_change, errors)
+					if config.cycle_empty_singers or any(next_singer.songs):
+						new_state.singers.append(next_singer)
+				config.driver.play_karaoke_file(file_to_start, song.key_change, errors)
 				return new_state
 		else:
 			errors.append(Error("There are no singers with songs available."))
