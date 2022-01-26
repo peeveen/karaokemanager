@@ -20,7 +20,6 @@ setup_args = dict(
 				"karaokemanager=karaokemanager.__main__:main",
 		]
 	},
-	include_package_data=True,
 	author='Steven Frew',
 	author_email='steven.fullhouse@gmail.com',
 	keywords=['karaokemanager', 'karaoke'],
