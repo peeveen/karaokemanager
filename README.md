@@ -61,7 +61,7 @@ Create a package containing this code, install it, and then set the driver->clas
 
 On startup, and during runtime, Karaoke Manager will create a number of text files in your configured `tempDataPath`, many of which are intended to be of some use if you are skilled with scripting or configuring third-party software to do your bidding. If that's you, then some of the files which might be of interest are:
 
-- `KaraokeManager.singers.txt` contains the names from current queue of singers (one per line). If a singer has no songs cued up, their name is prefixed with a tab.
+- `KaraokeManager.singers.txt` contains the names from the current queue of singers (one per line). If a singer has no songs cued up, their name is prefixed with a tab.
 - `KaraokeManager.backgroundMusic.txt` is a file containing full paths of background music files (one per line). This is generated on startup by cross-referencing the contents of the `backgroundMusicPlaylistFilename` (as specified in your configuration) with the music files that are found in the `paths` that you have specified in the `music` section of the config. You may find this file useful as a playlist for a media player that you can fade in between singers.
 - `KaraokeManager.musicRequests.txt` contains paths (one per line) of songs that you have selected with the `cue` command. You could write a script to monitor this file and deal with the request queue as you see fit.
 - `KaraokeManager.songSuggestion.txt` is written to every ten seconds with the artist & title of a random track from your karaoke library. I use this to show a 'Why not try ...?' rolling display along the bottom edge of the karaoke screen.
