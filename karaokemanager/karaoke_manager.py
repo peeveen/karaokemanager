@@ -40,12 +40,12 @@ class KaraokeManager:
 			raise Exception(f"Karaoke Manager requires a console with a minimum of {KaraokeManager.MIN_CONSOLE_HEIGHT} rows")
 		self.console_size=console_size
 		
-		configPath=KaraokeManager.DEFAULT_CONFIG_FILENAME
+		config_path=KaraokeManager.DEFAULT_CONFIG_FILENAME
 		if len(sys.argv)>1:
-			configPath=sys.argv[1]
+			config_path=sys.argv[1]
 
 		try:
-			self.config=Config(configPath)
+			self.config=Config(config_path)
 		except Exception as e:
 			print(f"{Fore.RED}Error parsing the configuration file: {e}{Style.RESET_ALL}")
 			exit(1)
@@ -122,42 +122,42 @@ class KaraokeManager:
 
 	# Print the current list of singers. Groups them into columns.
 	def show_singers(self, state):
-		singersWithRequests = state.getSingersDisplayList()
-		if not any(singersWithRequests):
+		singers_with_requests = state.getSingersDisplayList()
+		if not any(singers_with_requests):
 			print("No singers.")
 		else:
-			columnsOfSingers = []
-			dictionary = [{'chunk': chunk, 'index': i} for i, chunk in enumerate(chunks(singersWithRequests, KaraokeManager.SINGERS_PER_COLUMN))]
-			columnsOfSingers = list(map(lambda item: SingerColumn((item['index']*KaraokeManager.SINGERS_PER_COLUMN)+1, item['chunk']), dictionary))
-			for row in range(0, min(len(singersWithRequests), KaraokeManager.SINGERS_PER_COLUMN)):
-				print(*map(lambda singerColumn: singerColumn.get_row_text(row), columnsOfSingers))
+			columns_of_singers = []
+			dictionary = [{'chunk': chunk, 'index': i} for i, chunk in enumerate(chunks(singers_with_requests, KaraokeManager.SINGERS_PER_COLUMN))]
+			columns_of_singers = list(map(lambda item: SingerColumn((item['index']*KaraokeManager.SINGERS_PER_COLUMN)+1, item['chunk']), dictionary))
+			for row in range(0, min(len(singers_with_requests), KaraokeManager.SINGERS_PER_COLUMN)):
+				print(*map(lambda singerColumn: singerColumn.get_row_text(row), columns_of_singers))
 
 	# Print the list of songs for the current singer, or whatever singer
 	# has been flagged as the current "active list" singer.
 	def show_songs(self, state, feedback):
 		SONG_LIST_INDEX_LENGTH=4 # Two digits, colon and space
-		activeSinger = state.get_active_song_list_singer()
-		if activeSinger is None:
+		active_singer = state.get_active_song_list_singer()
+		if active_singer is None:
 			print(f"{Fore.MAGENTA}No current singer selected.{Style.RESET_ALL}")
 		else:
-			isSongListSingerNext = (activeSinger == state.next_singer())
-			if isSongListSingerNext:
-				nameColor = f"{Fore.WHITE}"
+			is_song_list_singer_next = (active_singer == state.next_singer())
+			if is_song_list_singer_next:
+				name_color = f"{Fore.WHITE}"
 			else:
-				nameColor = f"{Fore.MAGENTA}"
-			print(f"{Fore.WHITE}Showing song list for {nameColor}{Style.BRIGHT}{activeSinger.name}{Style.RESET_ALL}:")
+				name_color = f"{Fore.MAGENTA}"
+			print(f"{Fore.WHITE}Showing song list for {name_color}{Style.BRIGHT}{active_singer.name}{Style.RESET_ALL}:")
 			rows_used=min(len(state.singers),KaraokeManager.SINGERS_PER_COLUMN)
 			rows_used+=3 # Blank rows (one above and below singers list, and one after this song list)
 			rows_used+=2 # App header, and caption for this song list
 			rows_used+=2 # Upcoming prompt, and line for user to type on
 			rows_used+=len(feedback) # Any errors/messages we need to show the user
 			rows_available=self.console_size.lines-rows_used
-			songs_in_list=len(activeSinger.songs)
+			songs_in_list=len(active_singer.songs)
 			overflow=songs_in_list-rows_available
 			if overflow>0:
 				rows_available-=1 # Have to show one fewer than that, so that we can show "+n more"
 
-			max_artist_length, max_title_length=activeSinger.get_maximum_lengths(rows_available)
+			max_artist_length, max_title_length=active_singer.get_maximum_lengths(rows_available)
 			# We need to leave room for the song index, plus any key change indicator (and a column separator before that)
 			# The rest of the screen is available for song artist + title
 			max_available_space=self.console_size.columns-(SONG_LIST_INDEX_LENGTH+len(COLUMN_SEPARATOR)+Song.KEY_CHANGE_INDICATOR_LENGTH)
@@ -167,11 +167,11 @@ class KaraokeManager:
 				reduction_factor=max_available_space/combined_length
 				max_artist_length=int(max_artist_length*reduction_factor)
 				max_title_length=int(max_title_length*reduction_factor)
-			for i, song in enumerate(activeSinger.songs[:rows_available]):
-				songIndex = f"{Fore.YELLOW}{Style.BRIGHT}{i+1}{Style.RESET_ALL}"
+			for i, song in enumerate(active_singer.songs[:rows_available]):
+				song_index = f"{Fore.YELLOW}{Style.BRIGHT}{i+1}{Style.RESET_ALL}"
 				if i < 9:
-					songIndex = f" {songIndex}"
-				print(f"{songIndex}: {song.get_song_list_text(max_artist_length, max_title_length)}")
+					song_index = f" {song_index}"
+				print(f"{song_index}: {song.get_song_list_text(max_artist_length, max_title_length)}")
 			if overflow>0:
 				print(f"{Fore.GREEN}{Style.BRIGHT}... and {overflow} more.{Style.RESET_ALL}")
 
@@ -271,8 +271,7 @@ class KaraokeManager:
 			print()
 			self.show_feedback(feedback)
 			feedback=[]
-			print(
-				f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
+			print(f"Enter command, or type {Style.BRIGHT}help{Style.NORMAL} to see list of commands.")
 			command = self.get_command(feedback)
 			if not command is None:
 				state=self.process_command(command, state, feedback)
