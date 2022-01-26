@@ -51,7 +51,7 @@ def play_karaoke_file(self, karaoke_file, key_change, errors)
 
 - `config` is the [pyyaml](https://github.com/yaml/pyyaml) object that represents the driver-specific section from the YAML config file.
 - `karaoke_file` is the path to the file that should be played
-- `key_change `is a numeric value that tells you how many semitones the pitch of the track should be shifted.
+- `key_change `is a numeric value (from -5 to +5) that tells you how many semitones the pitch of the track should be shifted.
 - `errors` is a list to which you should append any error messages that KaraokeManager will display to the user.
 - The constructor should raise an exception if there is a problem.
 
