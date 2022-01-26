@@ -79,11 +79,11 @@ To prevent false positives being reported, you can create lists of exemptions (o
 - The scan will nag you about artists or titles containing words that are not capitalized. `LowerCaseExemptions.txt` can list those are valid (e.g. 'kd lang')
 - The `all` scan will nag your about artists or titles that look very similar (though only by comparing artist with artists, and titles with titles). `SimilarityExemptions.txt` can list those that should not be considered. Put both values on the same line, separated by a tab.
 
-### Like It?
+# Like It?
 
 If you like this, and/or use it commercially, please consider throwing some coins my way via PayPal, at steven.fullhouse@gmail.com, or [buy me a coffee](https://www.buymeacoffee.com/peeveen).
 
-### TODO
+# TODO
 
-- More customization.
+- More customization (disable/enable scanning options, don't cycle "empty" singers)
 - More code comments.
