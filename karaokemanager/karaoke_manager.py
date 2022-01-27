@@ -18,7 +18,7 @@ class KaraokeManager:
 	# Default YAML config filename
 	DEFAULT_CONFIG_FILENAME='.yaml'
 	# Version number
-	VERSION="1.0.5"
+	VERSION="1.0.6"
 	# How many singers to show in each column?
 	SINGERS_PER_COLUMN = 10
 	# Minimum console width
