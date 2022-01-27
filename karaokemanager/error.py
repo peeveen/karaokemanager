@@ -15,15 +15,15 @@ class Message:
 
 	def print(self):
 		if self.severity==Severity.INFO:
-			print(f'{Fore.YELLOW}')
+			color=f'{Fore.YELLOW}'
 		else:
-			print(f'{Fore.RED}')
-		print(f'{Style.BRIGHT}{self.message}{Style.RESET_ALL}')
+			color=f'{Fore.RED}'
+		print(f'{color}{Style.BRIGHT}{self.message}{Style.RESET_ALL}')
 
 class Error(Message):
-	def __init__(message):
-		Message(message,Severity.ERROR)
+	def __init__(self,message):
+		Message.__init__(self,message,Severity.ERROR)
 
 class Info(Message):
-	def __init__(message):
-		Message(message,Severity.INFO)
+	def __init__(self,message):
+		Message.__init__(self,message,Severity.INFO)
