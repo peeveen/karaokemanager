@@ -18,7 +18,7 @@ class KaraokeManager:
 	# Default YAML config filename
 	DEFAULT_CONFIG_FILENAME='.yaml'
 	# Version number
-	VERSION="1.0.6"
+	VERSION="1.0.7"
 	# How many singers to show in each column?
 	SINGERS_PER_COLUMN = 10
 	# Minimum console width
@@ -104,14 +104,14 @@ class KaraokeManager:
 			if not song is None:
 				feedback.append(Info(f"Added \"{song.title}\" by {song.artist} to the requests queue."))
 				try:
-					with open(self.config.paths.requests_filename, mode="a", encoding="utf-8") as f:
+					with open(self.config.paths.requests, mode="a", encoding="utf-8") as f:
 						f.write(song.path+"\n")
 				except PermissionError:
 					feedback.append(Error("Failed to write to requests file."))
 				if len(params)>1:
 					if params[1]=="a" or params[1]=="add":
 						try:
-							with open(self.config.paths.background_music_list_path, mode="a", encoding="utf-8") as f:
+							with open(self.config.paths.bgm_playlist, mode="a", encoding="utf-8") as f:
 								f.write(f"{song.artist} - {song.title}\n")
 						except PermissionError:
 							feedback.append(Error("Failed to append to background music playlist file."))
