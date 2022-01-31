@@ -5,7 +5,6 @@ from karaokemanager.commands import CommandType, parse_command
 from karaokemanager.exemptions import Exemptions
 from karaokemanager.state import State
 from karaokemanager.library import Library, LibraryAnalysisType
-from karaokemanager.karaoke_file import KaraokeFile
 from karaokemanager.singer_column import SingerColumn
 from karaokemanager.song_selector import select_song, show_song_list
 from karaokemanager.display_functions import COLUMN_SEPARATOR, clear, pad_or_ellipsize
@@ -258,7 +257,7 @@ class KaraokeManager:
 		self.rebuild_library(LibraryAnalysisType.NONE, feedback)
 		suggestion_generator.start_suggestion_thread(self.library.karaoke_dictionary)
 		state = State(self.config, self.library, feedback)
-		while True:
+		while not state is None:
 			clear()
 			state.save(feedback)
 			self.show_header()
@@ -275,9 +274,6 @@ class KaraokeManager:
 				state=self.process_command(command, state, feedback)
 				if command.command_type==CommandType.SCAN:
 					suggestion_generator.start_suggestion_thread(self.library.karaoke_dictionary)
-				if state is None:
-					break
-				
 		clear()
 		suggestion_generator.stop_suggestion_thread()
 
