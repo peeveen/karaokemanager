@@ -1,8 +1,6 @@
 from collections import defaultdict
-from colorama import Fore, Style
 from textdistance import levenshtein
 from os import path, walk
-from time import sleep
 from karaokemanager.display_functions import pad_or_ellipsize
 from karaokemanager.karaoke_file import KaraokeFile
 from karaokemanager.music_file import MusicFile
