@@ -75,7 +75,7 @@ scan:
   # Look for duplicate songs? (artist & title match)
   duplicates: True
   # Look for artists or titles with uncapitalized words?
-	capitalized: True
+  capitalized: True
   # Look for artists where there are "The" and non-"The" variations?
   the: True
   # Look for mixed-up duets (where "Chas & Dave" exists, but also "Dave & Chas"?)
