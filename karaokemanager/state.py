@@ -384,6 +384,6 @@ def get_key_change_value(key_change, errors):
 						if key_change[0] == '-':
 							return -int_value
 						return int_value
-		errors.append(Error("Invalid key change, should in format \"+N\" or \"-N\", where N is a value between 1 and 5."))
+		errors.append(Error("Invalid key change, should be in format \"+N\" or \"-N\", where N is a value between 1 and 5."))
 		return -99
 	return 0
