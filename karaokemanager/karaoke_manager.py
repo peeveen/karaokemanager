@@ -1,23 +1,27 @@
-from colorama import Fore, Style
-from os import get_terminal_size
 import sys
+from os import get_terminal_size
+
+from colorama import Fore, Style
+
 from karaokemanager.commands import CommandType, parse_command
+from karaokemanager.config import Config
+from karaokemanager.display_functions import (COLUMN_SEPARATOR, clear,
+                                              pad_or_ellipsize)
+from karaokemanager.error import Error, Info
 from karaokemanager.exemptions import Exemptions
-from karaokemanager.state import State
 from karaokemanager.library import Library, LibraryAnalysisType
 from karaokemanager.singer_column import SingerColumn
-from karaokemanager.song_selector import select_song, show_song_list
-from karaokemanager.display_functions import COLUMN_SEPARATOR, clear, pad_or_ellipsize
-from karaokemanager.config import Config
-from karaokemanager.error import Error, Info
-from karaokemanager.suggestion_generator import SuggestionGenerator
 from karaokemanager.song import Song
+from karaokemanager.song_selector import select_song, show_song_list
+from karaokemanager.state import State
+from karaokemanager.suggestion_generator import SuggestionGenerator
+
 
 class KaraokeManager:
 	# Default YAML config filename
 	DEFAULT_CONFIG_FILENAME='.yaml'
 	# Version number
-	VERSION="1.0.7"
+	VERSION="1.0.8"
 	# How many singers to show in each column?
 	SINGERS_PER_COLUMN = 10
 	# Minimum console width
@@ -38,7 +42,7 @@ class KaraokeManager:
 		if console_size.lines<KaraokeManager.MIN_CONSOLE_HEIGHT:
 			raise Exception(f"Karaoke Manager requires a console with a minimum of {KaraokeManager.MIN_CONSOLE_HEIGHT} rows")
 		self.console_size=console_size
-		
+
 		config_path=KaraokeManager.DEFAULT_CONFIG_FILENAME
 		if len(sys.argv)>1:
 			config_path=sys.argv[1]
