@@ -1,9 +1,11 @@
-from os import path
 from copy import deepcopy
-from karaokemanager.singer import Singer
-from karaokemanager.song_selector import select_song
-from karaokemanager.song import Song
+from os import path
+
 from karaokemanager.error import Error
+from karaokemanager.singer import Singer
+from karaokemanager.song import Song
+from karaokemanager.song_selector import select_song
+
 
 # Current state of the app.
 class State:
@@ -12,7 +14,7 @@ class State:
 	next_state = None
 	prev_state = None
 	state_path = None
-	queue_path = None	
+	queue_path = None
 
 	def __init__(self, config, library, errors):
 		self.state_path = config.paths.state
@@ -119,7 +121,7 @@ class State:
 		if len(same_name_singers) > 0:
 			errors.append(Error(f"Singer with name \"{singer_name}\" already exists."))
 		else:
-			new_state = self.mutate()			
+			new_state = self.mutate()
 			new_state.singers.insert(index, Singer(singer_name))
 			return new_state
 		return self
@@ -305,6 +307,7 @@ class State:
 				next_state = self.mutate()
 				next_state.set_song_list_to_singer(singer)
 				return next_state
+			return self
 
 	def get_active_song_list_singer(self):
 		if self.active_song_list_singer_name is None:
@@ -363,7 +366,7 @@ class State:
 
 # Given a path, get the karaoke file that matches it.
 # Used when restoring state on startup to check that a cued-up song still
-# exists.				
+# exists.
 def get_karaoke_file_from_path(path, karaokeFiles):
 	path = path.lower()
 	matches = [
